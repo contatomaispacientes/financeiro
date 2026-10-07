@@ -15,7 +15,8 @@
   - _Requisitos: CTR-05.3_
 
 - [ ] 5. Contratos: rascunho, editar, descartar, prévia, método de autenticação por signatário
-  - _Requisitos: CTR-02.1–02.8_
+  - Signatário da empresa obrigatório (padrão das Configurações), endereço completo obrigatório no envio.
+  - _Requisitos: CTR-02.1–02.9_
 
 - [ ] 6. Envio para o provedor com `provider_progress`/`onProgress` (retomada sem duplicar), links, auditoria
   - O `FakeProvider` deve simular falha em um passo intermediário para testar a retomada.
@@ -24,7 +25,7 @@
 - [ ] 7. Webhook de contratos (`/webhooks/contracts/:provider`, rawBody, verificação) reutilizando o `WebhookInbox`; `ContractEventsProcessor` e máquina de estados; rotas `/dev/fake-sign`
   - _Requisitos: CTR-04.1, CTR-04.2, CTR-04.4, CTR-04.5, CTR-04.6_
 
-- [ ] 8. `ContractChargeProcessor` (geração única, ajuste de vencimento, retries, erro visível, "Tentar gerar cobrança", alerta no dashboard)
+- [ ] 8. `ContractChargeProcessor` (geração única, ajuste de vencimento inclusive para geração tardia, retries, erro visível, "Tentar gerar cobrança" com `requeue`, alerta no dashboard)
   - _Requisitos: CTR-05.1–05.4_
 
 - [ ] 9. Download do PDF assinado para o storage + URL assinada

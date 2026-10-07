@@ -64,7 +64,7 @@ O cliente final **não acessa** a plataforma: recebe link da fatura (Asaas) e co
 | Parcelamento | Grupo de cobranças ligadas a um `installment` do Asaas. |
 | Assinatura (recorrência) | `subscription` do Asaas (`sub_…`) que gera uma cobrança por ciclo. Não confundir com assinatura de contrato. |
 | Contrato | Documento enviado ao Clicksign para assinatura eletrônica (1 contrato = 1 envelope); contém o plano de cobrança. |
-| Signatário | Pessoa que assina o contrato (cliente, empresa, testemunha). |
+| Signatário | Pessoa que assina o contrato: o cliente e o representante da empresa (sem testemunhas na v1). |
 | Régua de cobrança | Sequência de lembretes antes e depois do vencimento. |
 | Despesa | Conta a pagar da empresa. |
 

@@ -25,7 +25,7 @@ interface CreateDocumentInput {
   signers: Array<{
     externalId: string;                // contract_signers.id
     name: string; email: string; phone?: string; document?: string;
-    role: 'CLIENT' | 'COMPANY' | 'WITNESS';
+    role: 'CLIENT' | 'COMPANY';
     order: number;
     authMethod: AuthMethod;
   }>;

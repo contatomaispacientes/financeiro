@@ -46,7 +46,7 @@ Coração do sistema: transformar cliente + serviços + condições em cobrança
 
 ### COB-04 — Cobrança recorrente (assinatura)
 
-- COB-04.1 — O usuário DEVE poder criar uma recorrência com ciclo (semanal, quinzenal, mensal, bimestral, trimestral, semestral, anual), data da primeira cobrança e data final opcional.
+- COB-04.1 — O usuário DEVE poder criar uma recorrência com ciclo (semanal, quinzenal, mensal, bimestral, trimestral, semestral, anual), data da primeira cobrança e data final opcional, posterior à primeira cobrança.
 - COB-04.2 — QUANDO gerada, o sistema DEVE criar a assinatura no Asaas, guardar `sub_…` e os itens, e importar a primeira cobrança gerada pelo Asaas.
 - COB-04.3 — Cada nova cobrança gerada pelo Asaas para a assinatura DEVE aparecer localmente (via webhook ou reconciliação) com `origin = SUBSCRIPTION` e os itens da assinatura.
 - COB-04.4 — A tela de Recorrências DEVE listar assinaturas com cliente, valor, ciclo, próximo vencimento e status.
@@ -93,7 +93,8 @@ Coração do sistema: transformar cliente + serviços + condições em cobrança
 ### COB-12 — Falha na criação e retomada
 
 - COB-12.1 — SE o Asaas falhar durante a criação, ENTÃO o sistema DEVE manter o registro como `DRAFT` com o erro, responder com o id local e permitir "Tentar de novo" ou "Descartar".
-- COB-12.2 — "Tentar de novo" NÃO DEVE criar cobrança duplicada no Asaas (busca por `externalReference` antes de criar).
+- COB-12.2 — "Tentar de novo" NÃO DEVE criar cobrança, parcelamento ou assinatura duplicados no Asaas (busca por `externalReference` antes de criar, nos três tipos).
+- COB-12.3 — SE o rascunho ainda não existir no Asaas e o vencimento já tiver passado, ENTÃO "Tentar de novo" DEVE recusar com `DUE_DATE_IN_PAST` e sugerir descartar e criar outra (cobrança manual); para cobrança de contrato vale o ajuste de CTR-05.2.
 
 ## Requisitos não funcionais
 
@@ -110,3 +111,4 @@ Coração do sistema: transformar cliente + serviços + condições em cobrança
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Revisão: COB-12.2 cobre os três tipos, COB-12.3 (retry com vencimento passado), data final > primeira cobrança |

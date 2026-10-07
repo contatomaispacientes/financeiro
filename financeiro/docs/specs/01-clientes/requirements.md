@@ -19,7 +19,8 @@ Cliente é quem paga. Precisa de dados mínimos válidos para o Asaas emitir bol
 **História:** Como FINANCEIRO, quero cadastrar um cliente PF ou PJ, para poder cobrá-lo e enviar contrato.
 
 - CLI-01.1 — O sistema DEVE exigir nome (2–120 caracteres) e CPF ou CNPJ válido (dígitos verificadores); tipo PF/PJ é derivado do tamanho do documento.
-- CLI-01.2 — O sistema DEVE aceitar e-mail, celular com DDD, endereço (CEP, logradouro, número, complemento, bairro, cidade, UF) e observações, todos opcionais no cadastro.
+- CLI-01.2 — O sistema DEVE aceitar e-mail, celular com DDD, endereço de cobrança (CEP, logradouro, número, complemento, bairro, cidade, UF) e observações, todos opcionais no cadastro.
+- CLI-01.5 — SE o cliente não tiver endereço completo, ENTÃO a ficha e a seleção do Novo Contrato DEVEM avisar que o endereço é obrigatório para contrato (CTR-02.9).
 - CLI-01.3 — SE já existir cliente com o mesmo documento (inclusive arquivado), ENTÃO o sistema DEVE recusar com `CUSTOMER_DUPLICATE` e informar qual cliente é.
 - CLI-01.4 — O documento DEVE ser guardado só com dígitos e exibido formatado.
 
@@ -39,8 +40,8 @@ Cliente é quem paga. Precisa de dados mínimos válidos para o Asaas emitir bol
 
 - CLI-04.1 — O FINANCEIRO DEVE poder editar os dados do cliente.
 - CLI-04.2 — QUANDO um cliente com `asaas_customer_id` for editado em nome, e-mail, celular ou endereço, o sistema DEVE atualizar o cliente no Asaas; SE o Asaas falhar, ENTÃO a edição local DEVE ser mantida e o usuário avisado (`ASAAS_SYNC_PENDING`), com nova tentativa em fila.
-- CLI-04.3 — O sistema NÃO DEVE permitir alterar o documento de cliente que já tem cobrança emitida (`CUSTOMER_DOCUMENT_LOCKED`).
-- CLI-04.4 — O sistema DEVE permitir arquivar (não excluir) clientes; SE houver cobrança em aberto, assinatura ativa ou contrato enviado, ENTÃO DEVE recusar com `CUSTOMER_HAS_OPEN_ITEMS`.
+- CLI-04.3 — O sistema NÃO DEVE permitir alterar o documento de cliente que já tem cobrança emitida, contrato enviado ou cadastro no Asaas (`asaas_customer_id`) (`CUSTOMER_DOCUMENT_LOCKED`).
+- CLI-04.4 — O sistema DEVE permitir arquivar (não excluir) clientes; SE houver cobrança em aberto (`DRAFT`, `PENDING`, `OVERDUE`), assinatura ativa ou contrato em andamento (`SENT`, `PARTIALLY_SIGNED`), ENTÃO DEVE recusar com `CUSTOMER_HAS_OPEN_ITEMS`.
 - CLI-04.5 — Cliente arquivado NÃO DEVE aparecer na seleção de Nova Cobrança/Novo Contrato e pode ser desarquivado.
 
 ### CLI-05 — Garantir cliente no Asaas
@@ -55,10 +56,11 @@ Cliente é quem paga. Precisa de dados mínimos válidos para o Asaas emitir bol
 
 ## Perguntas em aberto
 
-- [ ] Endereço é obrigatório para algum modelo de contrato? (se sim, validar ao enviar o contrato, não no cadastro)
+- [x] Endereço é obrigatório para algum modelo de contrato? → **Sim, para todo contrato** (endereço de cobrança). Continua opcional no cadastro (cobrança avulsa não exige); é validado ao enviar o contrato (CTR-02.9) e a ficha avisa quando falta (CLI-01.5).
 
 ## Changelog
 
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Revisão: CLI-01.5 (aviso de endereço para contrato), CLI-04.3 trava documento também com cadastro no Asaas/contrato, CLI-04.4 detalha estados em aberto |

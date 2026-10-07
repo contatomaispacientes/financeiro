@@ -95,8 +95,11 @@ model Settings {
   reminderOnDueDate   Boolean  @default(true) @map("reminder_on_due_date")
   reminderDaysAfter   Int[]    @default([1, 7]) @map("reminder_days_after")
   reminderChannels    String[] @default(["ASAAS"]) @map("reminder_channels") // ASAAS | EMAIL | WHATSAPP
-  reminderMessage     String   @default("Olá, {cliente}! Sua cobrança de {valor} vence em {vencimento}. Pague por aqui: {link}") @map("reminder_message")
+  // mensagens da régua vivem em reminder_templates (spec 08)
   contractChargeDueDays Int    @default(3) @map("contract_charge_due_days")
+  companySignerName   String?  @map("company_signer_name")  // signatário padrão da empresa nos contratos (spec 07)
+  companySignerEmail  String?  @map("company_signer_email")
+  companySignerPhone  String?  @map("company_signer_phone")
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz
   @@map("settings")
 }
@@ -117,7 +120,7 @@ model Customer {
   address         Json?      // { postalCode, street, number, complement, district, city, state }
   asaasCustomerId String?    @unique @map("asaas_customer_id")
   asaasSyncError  String?    @map("asaas_sync_error") // última falha ao sincronizar edição com o Asaas
-  remindersEnabled Boolean   @default(true) @map("reminders_enabled") // régua por e-mail/WhatsApp
+  remindersEnabled Boolean   @default(true) @map("reminders_enabled") // false desliga e-mail/WhatsApp e as notificações do Asaas deste cliente (REG-05.1)
   notes           String?
   archivedAt      DateTime?  @map("archived_at") @db.Timestamptz
   createdAt       DateTime   @default(now()) @map("created_at") @db.Timestamptz
@@ -225,10 +228,17 @@ model Charge {
   @@map("charges")
 }
 
-// Um registro por estorno confirmado (webhook PAYMENT_REFUNDED / PARTIALLY_REFUNDED); base do fluxo de caixa
+enum ChargeRefundKind {
+  REFUND               // estorno (saída)
+  CHARGEBACK           // chargeback aberto (saída) — ADR-011
+  CHARGEBACK_REVERSAL  // disputa ganha, valor devolvido (entrada) — ADR-011
+}
+
+// Um registro por estorno/chargeback confirmado (webhook ou reconciliação); base do fluxo de caixa
 model ChargeRefund {
   id              String   @id @default(uuid()) @db.Uuid
   chargeId        String   @map("charge_id") @db.Uuid
+  kind            ChargeRefundKind @default(REFUND)
   valueCents      Int      @map("value_cents")
   refundedAt      DateTime @map("refunded_at") @db.Date
   webhookEventId  String   @unique @map("webhook_event_id") @db.Uuid
@@ -329,8 +339,7 @@ enum ContractStatus {
 }
 enum SignerRole {
   CLIENT
-  COMPANY
-  WITNESS
+  COMPANY // obrigatório em todo contrato; sem testemunhas na v1 (spec 07)
 }
 enum SignerStatus {
   PENDING
@@ -463,11 +472,14 @@ model Expense {
 
 // ───────── Régua ─────────
 enum ReminderKind {
-  CREATED
+  CREATED     // cobrança emitida (qualquer origem)
   BEFORE_DUE
   ON_DUE
   AFTER_DUE
-  MANUAL
+  MANUAL      // "Enviar ao cliente" na cobrança
+  PAID        // confirmação de pagamento
+  REFUNDED    // estorno confirmado
+  CANCELED    // cobrança cancelada
 }
 enum ReminderChannel {
   ASAAS
@@ -478,6 +490,21 @@ enum ReminderStatus {
   SENT
   FAILED
   SKIPPED
+}
+
+// Uma mensagem por processo × canal; AFTER_DUE/BEFORE_DUE podem ter texto próprio por offset (spec 08)
+model ReminderTemplate {
+  id         String          @id @default(uuid()) @db.Uuid
+  kind       ReminderKind
+  channel    ReminderChannel // EMAIL | WHATSAPP (ASAAS não usa modelo)
+  offsetDays Int?            @map("offset_days") // null = vale para todos os offsets do tipo
+  subject    String?         // obrigatório para EMAIL
+  body       String
+  active     Boolean         @default(true)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  @@map("reminder_templates")
+  // Índice único por migration SQL (PostgreSQL 15+):
+  // CREATE UNIQUE INDEX reminder_templates_uq ON reminder_templates (kind, channel, offset_days) NULLS NOT DISTINCT;
 }
 
 model ReminderLog {
@@ -509,6 +536,8 @@ model ReminderLog {
 | Evento de webhook processado uma vez | `@@unique([source, external_event_id])` |
 | Despesa recorrente gerada uma vez por mês | `@@unique([recurrence_id, reference_month])` |
 | Lembrete automático enviado uma vez por cobrança/tipo/canal/offset (envios MANUAL podem repetir) | índice único parcial `reminder_logs_auto_uq` (migration SQL) |
+| Contrato tem exatamente um signatário CLIENT e ao menos um COMPANY | `ContractDraftSchema` (shared) + service |
+| Estorno/chargeback registrado uma vez por evento | `charge_refunds.webhook_event_id` único |
 | Nome de serviço único entre ativos | índice único parcial `services_name_active_uq` (migration SQL, spec 02) |
 | Cliente arquivado não recebe nova cobrança/contrato | Service lança `CUSTOMER_ARCHIVED` |
 
@@ -516,6 +545,7 @@ model ReminderLog {
 
 - Usuário `admin@local` / senha do `.env` (`SEED_ADMIN_PASSWORD`).
 - Settings padrão.
+- `reminder_templates` padrão: um modelo de e-mail para cada tipo (`CREATED`, `BEFORE_DUE`, `ON_DUE`, `AFTER_DUE`, `MANUAL`, `PAID`, `REFUNDED`, `CANCELED`), textos da spec 08; `PAID`, `REFUNDED` e `CANCELED` começam inativos.
 - Categorias de despesa: Pessoal, Impostos, Escritório, Ferramentas, Infraestrutura, Serviços, Marketing, Outros.
 - 6 serviços de exemplo e 6 clientes fictícios (os mesmos do protótipo), **sem** `asaas_customer_id`.
 - Modelo de contrato do provedor `fake` (o modelo real do Clicksign é cadastrado pela tela, com a chave do sandbox).

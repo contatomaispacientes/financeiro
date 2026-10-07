@@ -3,7 +3,7 @@
 > Status: **Em revisão**
 
 - [ ] 1. Schemas de cliente em `shared` + testes
-  - _Requisitos: CLI-01.1, CLI-01.2, CLI-01.4_
+  - _Requisitos: CLI-01.1, CLI-01.2, CLI-01.4, CLI-01.5 (`isAddressComplete`)_
 
 - [ ] 2. Migration de busca (unaccent, pg_trgm, índice trigram em nome)
   - _Requisitos: CLI-NF1_
@@ -25,7 +25,8 @@
   - Teste de concorrência (duas chamadas em paralelo → 1 POST).
   - _Requisitos: CLI-05.1, CLI-05.2_
 
-- [ ] 7. Sincronização de edição com o Asaas (fila `asaas-customer-sync`)
+- [ ] 7. Sincronização de edição com o Asaas (fila `asaas-customer-sync`, sem `jobId` fixo — ADR-010)
+  - Teste: duas edições em sequência rápida → o último `PUT` leva os dados da segunda.
   - _Requisitos: CLI-04.2_
 
 - [ ] 8. Telas: lista, formulário, ficha (abas de cobranças/assinaturas/contratos vazias até as specs 03 e 07)

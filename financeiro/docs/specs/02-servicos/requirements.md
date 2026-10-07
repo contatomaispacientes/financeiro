@@ -18,7 +18,7 @@ Catálogo do que a empresa vende. Equivale aos "Planos" da AvanceAI, sem limites
 **História:** Como FINANCEIRO, quero manter um catálogo de serviços com preço padrão, para montar cobranças rapidamente.
 
 - SRV-01.1 — O sistema DEVE exigir nome (2–120, único entre ativos, sem diferenciar maiúsculas) e preço padrão > 0; descrição é opcional (até 500).
-- SRV-01.2 — SE já existir serviço ativo com o mesmo nome, ENTÃO o sistema DEVE recusar com `SERVICE_DUPLICATE`.
+- SRV-01.2 — SE já existir serviço ativo com o mesmo nome (ao criar, renomear ou reativar um serviço), ENTÃO o sistema DEVE recusar com `SERVICE_DUPLICATE`.
 - SRV-01.3 — QUANDO o preço padrão de um serviço for alterado, cobranças, assinaturas e contratos já criados NÃO DEVEM mudar.
 
 ### SRV-02 — Ativar e desativar
@@ -28,7 +28,7 @@ Catálogo do que a empresa vende. Equivale aos "Planos" da AvanceAI, sem limites
 
 ### SRV-03 — Listar
 
-- SRV-03.1 — A lista DEVE mostrar nome, descrição, preço padrão, quantidade de cobranças em que foi usado e situação, com filtro ativo/inativo/todos.
+- SRV-03.1 — A lista DEVE mostrar nome, descrição, preço padrão, quantidade de vendas em que foi usado (parcelamento conta 1, assinatura conta 1) e situação, com filtro ativo/inativo/todos.
 
 ## Requisitos não funcionais
 
@@ -39,3 +39,4 @@ Catálogo do que a empresa vende. Equivale aos "Planos" da AvanceAI, sem limites
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Revisão: duplicado também ao reativar; contagem de uso por venda |

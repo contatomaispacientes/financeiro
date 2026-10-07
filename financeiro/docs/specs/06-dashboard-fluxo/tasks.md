@@ -8,6 +8,9 @@
 - [ ] 2. `CashflowCalculator` (SQL) com entradas/saídas realizadas e previstas, taxas e estornos
   - _Requisitos: definições, FLX-02.1_
 
+- [ ] 2b. Projeção dos 3 meses seguintes: `projectSubscriptionDueDates` em `shared` + `projectMonth` no calculator
+  - _Requisitos: FLX-02.3_
+
 - [ ] 3. `GET /reports/dashboard` reutilizando o calculator
   - Alertas: contratos com erro na cobrança (contagem 0 até a spec 07 existir), cobranças DRAFT antigas, eventos pendentes.
   - _Requisitos: FLX-01.1–01.5_

@@ -29,6 +29,7 @@ interface AsaasClient {
 
   createSubscription(input: AsaasSubscriptionInput): Promise<AsaasSubscription>; // POST /subscriptions
   getSubscription(id: string): Promise<AsaasSubscription>;
+  listSubscriptions(filter: { externalReference?: string; customer?: string }): Promise<Page<AsaasSubscription>>; // GET /subscriptions
   deleteSubscription(id: string): Promise<void>;                                  // DELETE /subscriptions/{id}
 
   ping(): Promise<{ ok: boolean; latencyMs: number }>;                     // GET /finance/balance (só verifica 200)
@@ -49,7 +50,7 @@ Valores na interface interna são **centavos**; a implementação converte para 
 | `finePct` | `fine: { value, type: 'PERCENTAGE' }` | |
 | `interestPct` | `interest: { value }` (% ao mês) | |
 | itens | `description` (até 500 caracteres): "Serviço A (2x) · Serviço B (1x)" | Truncar com "…" |
-| id local | `externalReference` | `charges.external_reference` ou `subscriptions.external_reference` |
+| id local | `externalReference` | Avulsa: `chg_<uuid>`; parcelada: `grp_<uuid>` (o espelho local de cada parcela guarda `grp_<uuid>:<n>`); recorrente: `rec_<uuid>`; contrato: `ctr_<id>` no lugar do prefixo |
 
 Validar no sandbox na tarefa COB: `totalValue` vs `installmentValue` no parcelamento e o valor mínimo por cobrança (`ASAAS_MIN_CHARGE_CENTS`, padrão R$ 5,00).
 
@@ -77,13 +78,15 @@ Validar no sandbox na tarefa COB: `totalValue` vs `installmentValue` no parcelam
 | `PAYMENT_OVERDUE` | → `OVERDUE` |
 | `PAYMENT_DELETED` | → `CANCELED` |
 | `PAYMENT_RESTORED` | → `PENDING` (ou `OVERDUE` se vencida) |
-| `PAYMENT_REFUNDED` | → `REFUNDED`, `refunded_cents = value` |
-| `PAYMENT_PARTIALLY_REFUNDED` | → `PARTIALLY_REFUNDED`, soma `refunded_cents` |
-| `PAYMENT_CHARGEBACK_REQUESTED` / `PAYMENT_CHARGEBACK_DISPUTE` | → `CHARGEBACK` |
+| `PAYMENT_REFUNDED` | → `REFUNDED` (de `PAID`, `CONFIRMED` ou `PARTIALLY_REFUNDED`), `refunded_cents = value`, grava `charge_refunds` (`REFUND`) com o saldo que faltava |
+| `PAYMENT_PARTIALLY_REFUNDED` | → `PARTIALLY_REFUNDED` (inclusive a partir de `PARTIALLY_REFUNDED`: cada estorno parcial é aplicado), soma `refunded_cents`, grava `charge_refunds` (`REFUND`) |
+| `PAYMENT_CHARGEBACK_REQUESTED` | → `CHARGEBACK`, grava `charge_refunds` (`CHARGEBACK`) — ADR-011 |
+| `PAYMENT_CHARGEBACK_DISPUTE` | Mantém `CHARGEBACK`; só registra |
+| `PAYMENT_AWAITING_CHARGEBACK_REVERSAL` / reversão | **[confirmar no sandbox]** qual evento indica a devolução; ao confirmar → `PAID` e `charge_refunds` (`CHARGEBACK_REVERSAL`) |
 | `PAYMENT_CHECKOUT_VIEWED`, `PAYMENT_BANK_SLIP_VIEWED` | Só registra (aparece no histórico) |
 | `PAYMENT_REFUND_IN_PROGRESS`, `PAYMENT_AWAITING_RISK_ANALYSIS`, demais | Só registra |
 
-Localização da cobrança local, nesta ordem: `asaas_payment_id = payment.id` → `external_reference = payment.externalReference` → (se `payment.installment`) grupo do parcelamento por `installmentNumber` → (se `payment.subscription`) importação. Não encontrada → `result = UNKNOWN_RESOURCE` (não é erro; aparece no log).
+Localização da cobrança local, nesta ordem: `asaas_payment_id = payment.id` → `external_reference = payment.externalReference` → (`group_key = payment.externalReference` ou `asaas_installment_id = payment.installment`) + `installment_number = payment.installmentNumber` → (se `payment.subscription`) importação. Não encontrada → se o evento chegou há menos de 5 min, lança `RESOURCE_NOT_YET_KNOWN` para o BullMQ tentar de novo (cobre a corrida com a criação, spec 04); depois disso `result = UNKNOWN_RESOURCE` (não é erro; aparece no log).
 
 ## Erros do Asaas → erros de domínio
 

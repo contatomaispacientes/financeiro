@@ -73,7 +73,6 @@ Executar em ordem, guardando cada id no banco **logo após cada passo** (permite
 | --- | --- |
 | `CLIENT` | `contractor` (contratante) **[confirmar lista completa de papéis]** |
 | `COMPANY` | `party` (parte) |
-| `WITNESS` | papel de testemunha, se existir na v3; senão `sign` |
 
 ### Métodos de autenticação suportados na v1 do nosso sistema
 

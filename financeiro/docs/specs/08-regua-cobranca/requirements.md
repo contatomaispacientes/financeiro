@@ -4,7 +4,7 @@
 
 ## Contexto
 
-Reduzir inadimplência (O5) com lembretes automáticos antes e depois do vencimento. Na AvanceAI o atraso bloqueava o acesso; aqui não há acesso a bloquear, então a régua vira notificação. Canais: notificações nativas do Asaas, e-mail da plataforma e, na v1.1, WhatsApp.
+Reduzir inadimplência (O5) com lembretes automáticos antes e depois do vencimento, e manter o cliente informado em cada etapa da cobrança (emitida, paga, estornada, cancelada) com mensagens totalmente personalizáveis. Na AvanceAI o atraso bloqueava o acesso; aqui não há acesso a bloquear, então a régua vira notificação. Canais: notificações nativas do Asaas, e-mail da plataforma e, na v1.1, WhatsApp.
 
 ## Fora de escopo
 
@@ -15,14 +15,14 @@ Reduzir inadimplência (O5) com lembretes automáticos antes e depois do vencime
 
 ### REG-01 — Configurar a régua
 
-- REG-01.1 — O ADMIN DEVE configurar: dias antes do vencimento (0–30; 0 = não envia), envio no dia do vencimento (sim/não), dias após o vencimento (até 5 valores entre 1 e 60), canais ativos e mensagem com variáveis.
-- REG-01.2 — Variáveis disponíveis: `{cliente}`, `{valor}`, `{vencimento}`, `{link}`, `{pix}`, `{linha_digitavel}`, `{empresa}`, `{dias_atraso}`.
-- REG-01.3 — O ADMIN DEVE ver a prévia da mensagem com uma cobrança real escolhida.
-- REG-01.4 — SE a mensagem usar variável desconhecida, ENTÃO o sistema DEVE recusar com `REMINDER_UNKNOWN_VARIABLE`.
+- REG-01.1 — O ADMIN DEVE configurar: dias antes do vencimento (0–30; 0 = não envia), envio no dia do vencimento (sim/não), dias após o vencimento (até 5 valores entre 1 e 60) e canais ativos. Os textos ficam em REG-08.
+- REG-01.2 — Variáveis disponíveis: `{cliente}`, `{valor}`, `{vencimento}`, `{link}`, `{pix}`, `{linha_digitavel}`, `{empresa}`, `{servicos}`, `{parcela}` (ex.: "2/3"), `{dias_para_vencer}`, `{dias_atraso}`, `{data_pagamento}`, `{valor_estornado}`.
+- REG-01.3 — O ADMIN DEVE ver a prévia de cada mensagem com uma cobrança real escolhida.
+- REG-01.4 — SE a mensagem usar variável desconhecida, ENTÃO o sistema DEVE recusar com `REMINDER_UNKNOWN_VARIABLE`; SE usar variável que não existe naquele processo (ex.: `{dias_atraso}` em "Cobrança emitida"), ENTÃO DEVE recusar com `REMINDER_VARIABLE_NOT_AVAILABLE`.
 
 ### REG-02 — Canal Asaas
 
-- REG-02.1 — ONDE o canal `ASAAS` estiver ativo, o sistema DEVE criar/atualizar clientes no Asaas com notificações habilitadas; quando inativo, desabilitadas.
+- REG-02.1 — ONDE o canal `ASAAS` estiver ativo, o sistema DEVE criar/atualizar clientes no Asaas com notificações habilitadas; quando inativo, desabilitadas. Cliente com lembretes desligados (REG-05.1) DEVE ficar com notificações desabilitadas no Asaas mesmo com o canal ativo.
 - REG-02.2 — QUANDO o canal `ASAAS` for ligado ou desligado, o sistema DEVE atualizar os clientes já existentes no Asaas em segundo plano.
 
 ### REG-03 — Canal e-mail
@@ -37,16 +37,27 @@ Reduzir inadimplência (O5) com lembretes automáticos antes e depois do vencime
 ### REG-04 — Envios avulsos
 
 - REG-04.1 — O envio manual da cobrança (COB-10) DEVE usar o mesmo modelo e ser registrado como `MANUAL`.
-- REG-04.2 — QUANDO uma cobrança for gerada a partir de contrato e o canal e-mail estiver ativo, o sistema DEVE enviar o link da fatura ao cliente (registrado como `CREATED`).
+- REG-04.2 — QUANDO uma cobrança for emitida no Asaas (manual, de contrato ou novo ciclo de assinatura) e a mensagem "Cobrança emitida" estiver ativa, o sistema DEVE enviar o link da fatura ao cliente pelos canais ativos (registrado como `CREATED`).
+- REG-04.3 — QUANDO uma cobrança for paga, estornada ou cancelada e a mensagem correspondente estiver ativa, o sistema DEVE avisar o cliente (`PAID`, `REFUNDED`, `CANCELED`), no máximo uma vez por cobrança, tipo e canal.
 
 ### REG-05 — Controle por cliente
 
-- REG-05.1 — O usuário DEVE poder desligar os lembretes automáticos de um cliente na ficha dele.
+- REG-05.1 — O usuário DEVE poder desligar as mensagens automáticas de um cliente na ficha dele; isso DEVE desligar o e-mail/WhatsApp da plataforma **e** as notificações do Asaas para esse cliente (sincronizado em segundo plano). Envio manual continua possível.
 
 ### REG-06 — Histórico
 
 - REG-06.1 — O detalhe da cobrança DEVE listar os lembretes (tipo, canal, data, situação, erro).
 - REG-06.2 — Configurações › Régua DEVE mostrar os envios dos últimos 7 dias com totais por situação.
+
+### REG-08 — Mensagens personalizáveis
+
+**História:** Como ADMIN, quero escrever a mensagem de cada etapa da cobrança, para falar com o cliente do jeito da empresa em cada situação.
+
+- REG-08.1 — O sistema DEVE ter uma mensagem editável para cada processo × canal: Cobrança emitida (`CREATED`), Lembrete antes do vencimento (`BEFORE_DUE`), Vence hoje (`ON_DUE`), Cobrança em atraso (`AFTER_DUE`), Envio manual (`MANUAL`), Pagamento confirmado (`PAID`), Estorno (`REFUNDED`) e Cobrança cancelada (`CANCELED`). E-mail tem assunto e corpo; WhatsApp tem corpo.
+- REG-08.2 — Para `BEFORE_DUE` e `AFTER_DUE`, o ADMIN PODE criar uma mensagem específica para um dia da régua (ex.: 1 dia de atraso × 30 dias de atraso); sem a específica, vale a mensagem geral do tipo.
+- REG-08.3 — Cada mensagem DEVE poder ser ativada ou desativada; mensagem desativada não é enviada automaticamente. `MANUAL` não pode ser desativada.
+- REG-08.4 — O ADMIN DEVE poder restaurar o texto padrão de qualquer mensagem.
+- REG-08.5 — O sistema DEVE vir com textos padrão em português para todas as mensagens; `PAID`, `REFUNDED` e `CANCELED` vêm desativadas.
 
 ### REG-07 — WhatsApp (v1.1)
 
@@ -63,3 +74,4 @@ Reduzir inadimplência (O5) com lembretes automáticos antes e depois do vencime
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Decisões do dono: mensagens totalmente personalizáveis por processo, canal e dia da régua (REG-08); novas mensagens de evento (emitida para qualquer origem, paga, estornada, cancelada — REG-04.2/04.3); desligar lembretes do cliente desliga também as notificações do Asaas (REG-02.1, REG-05.1); novas variáveis |

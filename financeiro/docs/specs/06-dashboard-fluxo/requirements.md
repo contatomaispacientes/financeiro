@@ -11,13 +11,16 @@ Visão consolidada de entradas, saídas e saldo (O4) e acompanhamento da inadimp
 | Termo | Definição |
 | --- | --- |
 | Entrada realizada | Cobrança `PAID` ou `CONFIRMED` (inclusive se depois estornada), pelo valor bruto, no mês de `paid_at` |
-| Entrada prevista | Cobrança `PENDING` ou `OVERDUE` com vencimento até o fim do mês consultado |
+| Entrada prevista | Cobrança `PENDING` ou `OVERDUE` com vencimento **dentro** do mês consultado. Cobranças vencidas de meses anteriores NÃO entram no previsto: aparecem só no KPI "Vencido" |
+| Entrada projetada | Só nos 3 meses seguintes ao atual: ciclos de assinaturas `ACTIVE` que o Asaas ainda não gerou, calculados a partir de `next_due_date` pelo ciclo, até `end_date` |
 | Taxas Asaas | `value − net_value` das entradas realizadas do mês (saída realizada, categoria "Taxas Asaas") |
-| Estornos | `refunded_cents` lançados no mês do evento de estorno (saída realizada) |
-| Saída realizada | Despesa `PAID` pelo valor pago, no mês de `paid_at` + taxas Asaas + estornos |
-| Saída prevista | Despesa `OPEN` com vencimento até o fim do mês consultado |
+| Estornos | Lançamentos `charge_refunds` com `kind = REFUND` no mês do evento (saída realizada) |
+| Chargebacks | Lançamentos `charge_refunds` com `kind = CHARGEBACK` no mês em que o chargeback foi aberto (saída realizada); reversão (`CHARGEBACK_REVERSAL`) entra como entrada realizada no mês da devolução — ADR-011 |
+| Saída realizada | Despesa `PAID` pelo valor pago, no mês de `paid_at` + taxas Asaas + estornos + chargebacks |
+| Saída prevista | Despesa `OPEN` com vencimento **dentro** do mês consultado (atrasadas de meses anteriores ficam no KPI "Contas a pagar em aberto") |
+| Saída projetada | Só nos 3 meses seguintes ao atual: recorrências de despesa ativas cuja despesa do mês ainda não foi gerada |
 | Resultado do mês | Entradas realizadas − saídas realizadas |
-| Saldo previsto do mês | Entradas realizadas + previstas − saídas realizadas − previstas |
+| Saldo previsto do mês | Entradas realizadas + previstas (+ projetadas) − saídas realizadas − previstas (− projetadas) |
 | Inadimplência do mês | Valor vencido e não pago das cobranças que venceram no mês ÷ valor total que venceu no mês |
 
 Cartão (`CONFIRMED`) conta como realizado na data de confirmação, embora o Asaas libere o saldo depois; a tela indica isso na legenda.
@@ -30,7 +33,7 @@ Cartão (`CONFIRMED`) conta como realizado na data de confirmação, embora o As
 
 ### FLX-01 — Visão geral
 
-- FLX-01.1 — A visão geral DEVE mostrar, para o mês escolhido (padrão: mês atual): recebido, a receber, vencido (acumulado, todos os meses), contas a pagar em aberto e saldo previsto do mês.
+- FLX-01.1 — A visão geral DEVE mostrar, para o mês escolhido (padrão: mês atual): recebido, a receber (vencimento no mês), vencido (acumulado, todos os meses — não entra no saldo previsto), contas a pagar em aberto (inclui atrasadas) e saldo previsto do mês.
 - FLX-01.2 — DEVE listar os 6 próximos recebimentos em aberto e as 6 próximas despesas em aberto (com ação "Marcar paga").
 - FLX-01.3 — DEVE mostrar o resultado do mês com barras de realizado e previsto para entradas e saídas.
 - FLX-01.4 — DEVE mostrar os 6 últimos eventos do webhook (ADMIN e FINANCEIRO).
@@ -38,12 +41,13 @@ Cartão (`CONFIRMED`) conta como realizado na data de confirmação, embora o As
 
 ### FLX-02 — Fluxo de caixa mensal
 
-- FLX-02.1 — O usuário DEVE escolher um intervalo de meses (padrão: últimos 6, até 24) e ver, por mês: entradas, saídas, resultado, margem e, no mês corrente e futuros, o previsto.
+- FLX-02.1 — O usuário DEVE escolher um intervalo de meses (padrão: últimos 6 + os 3 seguintes; até 24 no passado e no máximo 3 meses à frente do atual) e ver, por mês: entradas, saídas, resultado, margem e, no mês corrente e nos futuros, o previsto.
+- FLX-02.3 — Nos 3 meses seguintes ao atual, o sistema DEVE projetar as cobranças futuras das assinaturas ativas e as despesas das recorrências ativas que ainda não foram geradas, exibindo-as separadas do previsto ("projetado").
 - FLX-02.2 — DEVE haver gráfico de barras entradas × saídas com o previsto destacado em tom mais claro e totais do período.
 
 ### FLX-03 — Saídas por categoria
 
-- FLX-03.1 — DEVE mostrar, para o mês escolhido, as saídas (realizadas + previstas) agrupadas por categoria, incluindo "Taxas Asaas" e "Estornos".
+- FLX-03.1 — DEVE mostrar, para o mês escolhido, as saídas (realizadas + previstas) agrupadas por categoria, incluindo "Taxas Asaas", "Estornos" e "Chargebacks".
 
 ### FLX-04 — Extrato
 
@@ -68,3 +72,4 @@ Cartão (`CONFIRMED`) conta como realizado na data de confirmação, embora o As
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Decisões do dono: vencidas de meses anteriores fora do saldo previsto (só no KPI Vencido); projeção de assinaturas e despesas recorrentes nos 3 meses seguintes (FLX-02.3); chargeback como saída (ADR-011) |

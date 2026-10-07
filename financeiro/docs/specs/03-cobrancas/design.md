@@ -43,6 +43,7 @@ export const ChargePlanSchema = z.object({
   if (p.type === 'INSTALLMENT' && !p.installmentCount) ctx.addIssue({ path: ['installmentCount'], code: 'custom', message: 'Informe o número de parcelas' });
   if (p.type === 'RECURRING' && !p.cycle) ctx.addIssue({ path: ['cycle'], code: 'custom', message: 'Informe o ciclo' });
   if (p.type !== 'INSTALLMENT' && p.installmentCount) ctx.addIssue({ path: ['installmentCount'], code: 'custom', message: 'Parcelas só em cobrança parcelada' });
+  if (p.type !== 'RECURRING' && (p.cycle || p.endDate)) ctx.addIssue({ path: ['cycle'], code: 'custom', message: 'Ciclo e data final só em cobrança recorrente' });
 });
 export type ChargePlan = z.infer<typeof ChargePlanSchema>;
 ```
@@ -52,7 +53,7 @@ export type ChargePlan = z.infer<typeof ChargePlanSchema>;
 1. `subtotal = Σ quantity × unitPriceCents`.
 2. `discount ≤ subtotal` senão `DISCOUNT_EXCEEDS_SUBTOTAL`; `total = subtotal − discount`; `total > 0` senão `CHARGE_TOTAL_ZERO`.
 3. `firstDue`: `FIXED_DATE` → a data; `DAYS_AFTER_SIGNATURE` → exige `signedAt` (senão `DUE_RULE_REQUIRES_SIGNATURE`) e vale `date(signedAt em SP) + days`.
-4. `firstDue < today` → `DUE_DATE_IN_PAST`.
+4. `firstDue < today` → `DUE_DATE_IN_PAST`. Recorrente com `endDate ≤ firstDue` → `END_DATE_BEFORE_FIRST_DUE`.
 5. Parcelas: `splitInstallments(total, n)`, vencimentos `addMonthsClamped(firstDue, i)`; cada parcela ≥ `minChargeCents` senão `CHARGE_BELOW_MINIMUM`. Avulsa/recorrente: `total ≥ minChargeCents`.
 6. `description` = itens "Nome (qtdx)" unidos por " · ", truncado em 500.
 7. Retorna `{ subtotalCents, discountCents, totalCents, firstDueDate, installments: [{ number, dueDate, valueCents }], description }`.
@@ -61,21 +62,21 @@ O front usa a mesma função para o resumo em tempo real; a API recalcula sempre
 
 ## Algoritmo `createFromPlan(customerId, plan, ctx: { origin, contractId?, userId?, signedAt?, idempotencyKey? })`
 
-0. **Idempotência opcional** (usada pelos contratos): se `ctx.idempotencyKey` vier, ela substitui os prefixos gerados abaixo (`SINGLE`: `external_reference = key`; `INSTALLMENT`: `group_key = key` e `"<key>:<n>"`; `RECURRING`: assinatura com `external_reference = key`). Se já existirem registros locais com essa chave, pula a Tx 1 e segue do passo 3 (mesmo caminho do retry); se já estiverem fora de `DRAFT`, devolve os existentes.
+0. **Idempotência opcional** (usada pelos contratos): se `ctx.idempotencyKey` vier, ela substitui os prefixos gerados abaixo (`SINGLE`: `external_reference = key`; `INSTALLMENT`: `group_key = key` e `"<key>:<n>"`; `RECURRING`: assinatura com `external_reference = key`). Se já existirem registros locais com essa chave, pula a Tx 1 e segue do passo 3 (mesmo caminho do retry); se já estiverem fora de `DRAFT`, devolve os existentes. Se o rascunho existente tiver vencimento no passado, o chamador (contrato) passa o plano já ajustado (CTR-05.2) e o service regrava os vencimentos do rascunho antes do passo 4 — permitido só enquanto nada existe no Asaas.
 1. Carrega cliente; arquivado → `CUSTOMER_ARCHIVED`. `calculatePlan` com `today = todayInSaoPaulo()`.
 2. **Tx 1 (local, DRAFT):**
    - `SINGLE`: 1 `charge` (`external_reference = "chg_<uuid>"`) + itens.
    - `INSTALLMENT`: `groupKey = "grp_<uuid>"`; N `charges` com `installment_number`, `installment_count`, `external_reference = "<groupKey>:<n>"`, `group_key`; itens replicados em cada parcela (composição da venda).
-   - `RECURRING`: 1 `subscription` (`external_reference = "sub_<uuid>"`, `status = ACTIVE` só após o Asaas) + `subscription_items`.
+   - `RECURRING`: 1 `subscription` (`external_reference = "rec_<uuid>"` — prefixo diferente do `sub_…` do Asaas para não confundir; `status = ACTIVE` só após o Asaas) + `subscription_items`.
 3. `ensureAsaasCustomer(customerId)`.
 4. **Asaas** (fora de transação):
    - `SINGLE`: `listPayments({ externalReference })` → se existir, reutiliza; senão `createPayment({ customer, billingType, value, dueDate, description, externalReference, fine, interest })`.
    - `INSTALLMENT`: `listPayments({ externalReference: groupKey })` → se existir, pega o `installment`; senão `createPayment({ …, installmentCount: n, totalValue: total, dueDate: firstDue, externalReference: groupKey })`. Depois `listPayments({ installment })` e casa por `installmentNumber` (fallback: ordem de `dueDate`). Se os valores do Asaas diferirem do cálculo local, **o Asaas vence** e grava-se o valor dele.
-   - `RECURRING`: `createSubscription({ customer, billingType, value: total, nextDueDate: firstDue, cycle, endDate, description, externalReference, fine, interest })`; depois `listPayments({ subscription })` e importa as cobranças retornadas (`origin = SUBSCRIPTION`).
+   - `RECURRING`: `listSubscriptions({ externalReference })` → se existir (não removida), reutiliza; senão `createSubscription({ customer, billingType, value: total, nextDueDate: firstDue, cycle, endDate, description, externalReference, fine, interest })`. Depois `listPayments({ subscription })` e importa as cobranças retornadas (`origin = SUBSCRIPTION`) com **upsert por `asaas_payment_id`** — o webhook `PAYMENT_CREATED` pode ter importado a mesma cobrança em paralelo (spec 04).
 5. **Tx 2:** grava ids Asaas, `status` mapeado (`PENDING|RECEIVED→PAID|CONFIRMED|OVERDUE`), `invoice_url`, `bank_slip_url`, `asaas_installment_id`, `last_error = null`. Origem CONTRACT: `contract_id` em todas as cobranças/assinatura.
 6. Best-effort: `getPixQrCode` (PIX/UNDEFINED) e `getIdentificationField` (BOLETO/UNDEFINED) → grava `pix_payload`, `identification_field`. Falha só gera log.
-7. Auditoria `charge.create` com ids e total.
-8. **Falha no passo 3 ou 4:** grava `last_error`, mantém `DRAFT`, lança `ASAAS_*` com `details.chargeIds`/`subscriptionId`. `POST /charges/:id/retry` reexecuta a partir do passo 3 para o grupo inteiro.
+7. Auditoria `charge.create` com ids e total. Emite `charge.created` (`EventEmitter2`) para cada cobrança que saiu de `DRAFT` — a régua usa para a mensagem `CREATED` (spec 08).
+8. **Falha no passo 3 ou 4:** grava `last_error`, mantém `DRAFT`, lança `ASAAS_*` com `details.chargeIds`/`subscriptionId`. `POST /charges/:id/retry` reexecuta a partir do passo 3 para o grupo inteiro; se a busca por `externalReference` não achar nada no Asaas e o vencimento do rascunho for anterior a hoje → `DUE_DATE_IN_PAST` (COB-12.3).
 
 ## API
 
@@ -97,7 +98,7 @@ O front usa a mesma função para o resumo em tempo real; a API recalcula sempre
 
 ## Regras das ações
 
-- **Cancelar** (`PENDING|OVERDUE`): `deletePayment` → local `CANCELED` na hora (o webhook `PAYMENT_DELETED` depois é idempotente). `REMAINING_INSTALLMENTS`: itera parcelas abertas do mesmo `group_key`, em sequência, parando no primeiro erro e reportando quais foram canceladas.
+- **Cancelar** (`PENDING|OVERDUE`): `deletePayment` → local `CANCELED` na hora (o webhook `PAYMENT_DELETED` depois é idempotente) e emite `charge.canceled` (mensagem `CANCELED` da régua, se ativa). `REMAINING_INSTALLMENTS`: itera parcelas abertas do mesmo `group_key`, em sequência, parando no primeiro erro e reportando quais foram canceladas.
 - **Estornar** (`PAID|CONFIRMED`, ADMIN): saldo estornável = `value_cents − refunded_cents`; `refundPayment(id, valueCents)`; grava `refund_requested_at`; status muda só pelo webhook.
 - **Enviar** (`PENDING|OVERDUE`): delega a `RemindersService.sendManual(chargeId, 'EMAIL')` (spec 08). Enquanto a spec 08 não existir, `MailProvider` + modelo simples, registrando `reminder_logs` com `kind = MANUAL`.
 - **Sync**: `getPayment` → passa pelo mesmo `PaymentEventProcessor` (spec 04) como evento `RECONCILE`.
@@ -109,7 +110,7 @@ O front usa a mesma função para o resumo em tempo real; a API recalcula sempre
 | --- | --- | --- |
 | `CHARGE_PLAN_INVALID` | 400 | zod do plano (`details` = issues) |
 | `CUSTOMER_ARCHIVED` | 422 | COB-01.6 |
-| `CHARGE_TOTAL_ZERO` · `DISCOUNT_EXCEEDS_SUBTOTAL` · `DUE_DATE_IN_PAST` · `CHARGE_BELOW_MINIMUM` · `DUE_RULE_REQUIRES_SIGNATURE` | 422 | COB-01.5, COB-03.4 |
+| `CHARGE_TOTAL_ZERO` · `DISCOUNT_EXCEEDS_SUBTOTAL` · `DUE_DATE_IN_PAST` · `CHARGE_BELOW_MINIMUM` · `DUE_RULE_REQUIRES_SIGNATURE` · `END_DATE_BEFORE_FIRST_DUE` | 422 | COB-01.5, COB-03.4, COB-04.1, COB-12.3 |
 | `CHARGE_NOT_DRAFT` | 409 | retry/discard fora de DRAFT |
 | `CHARGE_NOT_CANCELABLE` | 409 | COB-08.3 |
 | `CHARGE_NOT_REFUNDABLE` · `REFUND_EXCEEDS_VALUE` | 409 / 422 | COB-09 |
@@ -140,7 +141,7 @@ Invalidações: criar/cancelar/estornar invalidam `['charges']`, `['charge', id]
 | --- | --- | --- |
 | Unit (shared) | `calculatePlan`: totais, desconto, mínimo, vencimento no passado, `DAYS_AFTER_SIGNATURE`, parcelas somando o total, fim de mês | COB-01, COB-03.2 |
 | Unit (api) | mapeamento plano → payload Asaas (fixtures de saída esperada) | COB-02.2, 02.3, COB-03.3, COB-04.2 |
-| Integração (nock) | avulsa feliz; cliente criado no meio; falha → DRAFT → retry sem duplicar; parcelada casa N parcelas (COB-03.1, 03.3); recorrente com ciclo e data final, importa 1ª cobrança (COB-04.1, 04.2) | COB-02, COB-03, COB-04, COB-12 |
+| Integração (nock) | avulsa feliz; cliente criado no meio; falha → DRAFT → retry sem duplicar (avulsa, parcelada **e recorrente** — `listSubscriptions` acha a já criada); retry com vencimento passado → `DUE_DATE_IN_PAST`; importação da 1ª cobrança da assinatura concorrendo com o webhook → 1 registro; parcelada casa N parcelas (COB-03.1, 03.3); recorrente com ciclo e data final, importa 1ª cobrança (COB-04.1, 04.2) | COB-02, COB-03, COB-04, COB-12 |
 | Integração (com spec 04) | `PAYMENT_CREATED` de assinatura importado com itens da assinatura | COB-04.3 |
 | Integração | cancelar (estados válidos/ inválidos, restantes do parcelamento), estorno (papel, saldo), envio sem e-mail | COB-08, 09, 10 |
 | Integração | lista: filtros combinados, contagem por status, soma | COB-06 |
@@ -152,3 +153,4 @@ Invalidações: criar/cancelar/estornar invalidam `['charges']`, `['charge', id]
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Revisão: `rec_` no lugar de `sub_`, retry de recorrente sem duplicar (`listSubscriptions`), upsert na importação, retry com vencimento passado, evento `charge.created`/`charge.canceled`, validação de ciclo/data final |

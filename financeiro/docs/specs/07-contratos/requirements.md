@@ -30,7 +30,8 @@ Toda venda deve ser formalizada com contrato assinado eletronicamente, e a cobra
 
 - CTR-02.1 — O contrato DEVE ter: cliente ativo, modelo ativo, título, plano de cobrança (mesmo formulário e validações da Nova Cobrança), signatários e validade (padrão 15 dias).
 - CTR-02.2 — O vencimento do plano DEVE permitir "data fixa" ou "N dias após a assinatura" (padrão: `contract_charge_due_days` das Configurações).
-- CTR-02.3 — O cliente DEVE ser incluído como signatário por padrão com nome, e-mail, celular e documento do cadastro; o usuário PODE adicionar signatário da empresa e testemunhas (até 6 no total) e definir ordem.
+- CTR-02.3 — Todo contrato DEVE ter exatamente um signatário do cliente (preenchido com nome, e-mail, celular e documento do cadastro) e ao menos um signatário da empresa prestadora (preenchido com o signatário padrão das Configurações); o usuário PODE adicionar outros representantes da empresa (até 6 signatários no total) e definir a ordem. Não há testemunhas na v1.
+- CTR-02.9 — SE o cliente não tiver endereço de cobrança completo (CEP, logradouro, número, bairro, cidade, UF), ENTÃO o sistema DEVE bloquear o envio com `CUSTOMER_ADDRESS_REQUIRED`, independentemente de o modelo usar a variável de endereço.
 - CTR-02.8 — Cada signatário DEVE ter um método de autenticação: e-mail (padrão), WhatsApp ou SMS; SE o método for WhatsApp ou SMS e não houver celular, ENTÃO o sistema DEVE recusar com `SIGNER_PHONE_REQUIRED`.
 - CTR-02.4 — SE algum signatário não tiver e-mail válido, ENTÃO o sistema DEVE recusar o envio com `SIGNER_EMAIL_REQUIRED`.
 - CTR-02.5 — O sistema DEVE mostrar a prévia das variáveis resolvidas e do plano (totais, parcelas) antes do envio.
@@ -57,10 +58,10 @@ Toda venda deve ser formalizada com contrato assinado eletronicamente, e a cobra
 **História:** Como dono, quero que a cobrança seja criada sozinha quando o cliente assinar, para não depender de alguém lembrar.
 
 - CTR-05.1 — QUANDO o contrato chegar a `SIGNED`, o sistema DEVE criar a cobrança/parcelamento/assinatura no Asaas a partir do plano do contrato, com `origin = CONTRACT` e vínculo ao contrato.
-- CTR-05.2 — O vencimento DEVE ser: "N dias após a assinatura" → data da assinatura + N; "data fixa" → a data, ou hoje + `contract_charge_due_days` se a data já passou.
+- CTR-05.2 — O vencimento DEVE ser: "N dias após a assinatura" → data da assinatura + N; "data fixa" → a data. SE a data resultante for anterior ao dia da geração (data fixa já passou, ou a geração foi refeita dias depois da assinatura), ENTÃO DEVE ser hoje + `contract_charge_due_days`, com o ajuste registrado na auditoria.
 - CTR-05.3 — A cobrança DEVE ser gerada no máximo uma vez por contrato, mesmo com eventos repetidos ou reprocessamento.
-- CTR-05.4 — SE a geração falhar, ENTÃO o sistema DEVE tentar de novo automaticamente (5×) e, esgotado, mostrar o erro no contrato com ação "Tentar gerar cobrança" e destacar no dashboard.
-- CTR-05.5 — ONDE o canal de e-mail estiver ativo na régua, o sistema DEVE enviar ao cliente o link da fatura logo após gerar a cobrança.
+- CTR-05.4 — SE a geração falhar, ENTÃO o sistema DEVE tentar de novo automaticamente (5×) e, esgotado, mostrar o erro no contrato com ação "Tentar gerar cobrança" (que DEVE funcionar mesmo depois de esgotadas as tentativas) e destacar no dashboard.
+- CTR-05.5 — ONDE o canal de e-mail estiver ativo e a mensagem "Cobrança emitida" (`CREATED`) estiver ativa na régua, o sistema DEVE enviar ao cliente o link da fatura logo após gerar a cobrança (REG-04.2).
 
 ### CTR-06 — Gerenciar contratos enviados
 
@@ -92,8 +93,9 @@ Toda venda deve ser formalizada com contrato assinado eletronicamente, e a cobra
 
 - [x] Provedor real → Clicksign API v3 (ADR-009).
 - [ ] O plano do Clicksign contratado inclui automação com modelos via API?
-- [ ] A empresa assina todos os contratos (signatário COMPANY obrigatório) ou só o cliente?
-- [ ] Testemunhas são necessárias nos modelos?
+- [x] A empresa assina todos os contratos? → **Sim.** A empresa prestadora assina todos e o cliente também (CTR-02.3).
+- [x] Testemunhas são necessárias? → **Não** (papel `WITNESS` removido).
+- [x] Endereço obrigatório? → **Sim, em todo contrato** (CTR-02.9).
 
 ## Changelog
 
@@ -101,3 +103,4 @@ Toda venda deve ser formalizada com contrato assinado eletronicamente, e a cobra
 | --- | --- |
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Provedor definido: Clicksign. CTR-02.8 (método de autenticação), CTR-03 e CTR-04.5 ajustados ao fluxo de envelopes e HMAC, CTR-08 reescrito |
+| 07/10/2026 | Decisões do dono: empresa assina todos os contratos, sem testemunhas (CTR-02.3), endereço de cobrança obrigatório (CTR-02.9); CTR-05.2 ajusta também o 'N dias após a assinatura' quando a geração é refeita tarde; CTR-05.4 funciona após esgotar tentativas |

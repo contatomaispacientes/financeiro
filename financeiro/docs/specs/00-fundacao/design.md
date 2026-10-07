@@ -79,7 +79,9 @@ export const SettingsUpdateSchema = z.object({
   reminderOnDueDate: z.boolean(),
   reminderDaysAfter: z.array(z.number().int().min(1).max(60)).max(5),
   reminderChannels: z.array(z.enum(['ASAAS', 'EMAIL', 'WHATSAPP'])).min(1),
-  reminderMessage: z.string().min(10).max(1000),
+  companySignerName: z.string().min(2).max(120).optional(),   // spec 07
+  companySignerEmail: z.string().email().optional(),
+  companySignerPhone: z.string().regex(/^\d{10,11}$/).optional(),
 }).partial();
 ```
 
@@ -144,3 +146,4 @@ Serviços postgres e redis; passos: `pnpm install --frozen-lockfile` → `pnpm l
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Revisão das specs 01–08: `reminderMessage` sai de Settings (mensagens passam para `reminder_templates`, spec 08); entram `companySigner*` (signatário padrão da empresa, spec 07). Sem impacto nas tarefas já planejadas além do schema de Settings |

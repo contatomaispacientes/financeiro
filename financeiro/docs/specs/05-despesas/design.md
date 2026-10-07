@@ -20,6 +20,7 @@ Tabelas `expenses`, `expense_categories`, `expense_recurrences` (data-model.md).
 | GET | `/expenses/:id/attachment` | todos | — | 302 para URL assinada | DSP-NF1 |
 | GET/POST/PATCH | `/expense-recurrences`, `/expense-recurrences/:id` | GET todos; escrita ADMIN, FIN | `RecurrenceCreate/Update` | | DSP-03 |
 | GET/POST/PATCH | `/expense-categories`, `/expense-categories/:id` | GET todos; escrita ADMIN | `{ name, active }` | | DSP-04 |
+| DELETE | `/expense-categories/:id` | ADMIN | — | 204; `CATEGORY_IN_USE` se houver despesa ou recorrência com a categoria (sugerir desativar) | DSP-04.1 |
 
 `summary` = `{ openCents, lateCents, paidThisMonthCents, monthTotalCents, countByState }` calculado para o mês corrente, independente do filtro de página.
 
@@ -91,3 +92,4 @@ export const RecurrenceCreateSchema = z.object({
 | Data | Mudança |
 | --- | --- |
 | 07/10/2026 | Versão inicial |
+| 07/10/2026 | Revisão: rota de exclusão de categoria (o erro `CATEGORY_IN_USE` não tinha rota) |

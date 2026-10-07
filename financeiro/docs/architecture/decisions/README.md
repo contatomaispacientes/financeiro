@@ -13,3 +13,5 @@ Formato curto: contexto → decisão → consequências. Um ADR aceito só muda 
 | [007](ADR-007-reconciliacao.md) | Reconciliação diária com o Asaas | Aceito |
 | [008](ADR-008-filas-bullmq.md) | BullMQ + Redis para filas e agendamentos | Aceito |
 | [009](ADR-009-clicksign.md) | Clicksign (API v3) como provedor de assinatura eletrônica | Aceito |
+| [010](ADR-010-ids-de-job-e-reenfileiramento.md) | Ids de job sem `:` e reenfileiramento manual no BullMQ | Aceito |
+| [011](ADR-011-chargeback-como-saida.md) | Chargeback lançado como saída no fluxo de caixa | Aceito (provisório) |

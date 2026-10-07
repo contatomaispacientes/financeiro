@@ -21,9 +21,9 @@
   - DRAFT → Asaas → espelho; dados de pagamento best-effort; auditoria.
   - _Requisitos: COB-01.4, COB-01.6, COB-02.1–02.4, COB-05.2, COB-NF2_
 
-- [ ] 5. Falha e retomada: `retry`, `discard`, busca por `externalReference` antes de criar; `ctx.idempotencyKey`
+- [ ] 5. Falha e retomada: `retry`, `discard`, busca por `externalReference` antes de criar; `ctx.idempotencyKey`; retry com vencimento passado (COB-12.3)
   - Teste: falha 502 → DRAFT; retry com o Asaas já tendo criado → não duplica; chamar 2× com a mesma `idempotencyKey` → um único registro local e no Asaas.
-  - _Requisitos: COB-12.1, COB-12.2 (e base de CTR-05.3)_
+  - _Requisitos: COB-12.1, COB-12.2, COB-12.3 (e base de CTR-05.3)_
 
 - [ ] 6. `GET /charges/:id` e `GET /charges/:id/payment-info`
   - _Requisitos: COB-05, COB-07.1_
@@ -37,7 +37,7 @@
 - [ ] 8. Parcelada: criação do installment, casamento das parcelas, telas de parcelas
   - _Requisitos: COB-03.1–03.4_
 
-- [ ] 9. Recorrente: `AsaasClient` subscriptions; criação; importação da 1ª cobrança; `/subscriptions` (lista e detalhe)
+- [ ] 9. Recorrente: `AsaasClient` subscriptions (inclui `listSubscriptions` por `externalReference`); criação e retry sem duplicar; importação da 1ª cobrança com upsert; `/subscriptions` (lista e detalhe)
   - _Requisitos: COB-04.1, COB-04.2, COB-04.4_
 
 - [ ] 10. Importação de cobranças de assinatura vindas do webhook (`PAYMENT_CREATED` com `subscription`) — integra com a spec 04

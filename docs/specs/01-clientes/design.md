@@ -4,9 +4,12 @@
 
 ## Dados
 
-Tabela `customers` (data-model.md). Índices extras via migration SQL:
+Tabela `customers` (data-model.md). Índices extras via migration SQL (`20261008120000_customers_name_search`):
 - `CREATE EXTENSION IF NOT EXISTS unaccent; CREATE EXTENSION IF NOT EXISTS pg_trgm;`
-- índice GIN trigram em `unaccent(lower(name))` (função imutável wrapper `f_unaccent`).
+- função imutável `public.f_unaccent(text)` (`BEGIN ATOMIC`, dicionário `public.unaccent` fixo);
+- índice GIN trigram `customers_name_search_idx` em `public.f_unaccent(lower(name))`.
+
+A busca por nome **precisa** usar exatamente `public.f_unaccent(lower(name)) LIKE '%' || public.f_unaccent(lower($termo)) || '%'` para aproveitar o índice.
 
 ## API
 
@@ -86,3 +89,4 @@ Em PATCH, campo ausente = não altera; `null` = apaga. Helpers: `isAddressComple
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Revisão: schema de update sem defaults, sync sem jobId fixo (ADR-010), `notificationDisabled` considera o cliente, aviso de endereço |
 | 08/10/2026 | Tarefa 1: schema em sintaxe do zod 4 (ADR-014); campos opcionais vazios viram `null` (PATCH: ausente = mantém, `null` = apaga); CEP aceita máscara; UF validada contra as 27 siglas; mensagens em pt-BR; helpers de formatação para exibição |
+| 08/10/2026 | Tarefa 2: migration de busca com `f_unaccent` em `BEGIN ATOMIC` e índice `customers_name_search_idx`; expressão de consulta obrigatória documentada acima |

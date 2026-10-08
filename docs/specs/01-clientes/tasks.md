@@ -5,7 +5,7 @@
 - [x] 1. Schemas de cliente em `shared` + testes
   - _Requisitos: CLI-01.1, CLI-01.2, CLI-01.4, CLI-01.5 (`isAddressComplete`)_
 
-- [ ] 2. Migration de busca (unaccent, pg_trgm, índice trigram em nome)
+- [x] 2. Migration de busca (unaccent, pg_trgm, índice trigram em nome)
   - _Requisitos: CLI-NF1_
 
 - [ ] 3. `CustomersModule`: criar, obter, editar, lookup por documento

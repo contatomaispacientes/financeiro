@@ -3,7 +3,7 @@ import { typescriptDecorators } from './vitest.plugins';
 
 export default defineConfig({
   plugins: [typescriptDecorators()],
-  esbuild: false,
+  oxc: false,
   test: {
     globals: true,
     include: ['test/e2e/**/*.e2e-spec.ts'],

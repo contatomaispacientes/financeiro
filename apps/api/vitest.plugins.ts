@@ -1,7 +1,7 @@
 import type { Plugin } from 'vitest/config';
 import ts from 'typescript';
 
-// esbuild does not emit decorator metadata, which NestJS DI relies on (ADR-012).
+// Oxc/esbuild do not emit decorator metadata, which NestJS DI relies on (ADR-012).
 export function typescriptDecorators(): Plugin {
   return {
     name: 'typescript-decorators',

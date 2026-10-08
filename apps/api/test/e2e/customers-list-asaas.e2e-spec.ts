@@ -147,13 +147,13 @@ describe('Clientes: lista, arquivo e Asaas (integração)', () => {
       const posts: unknown[] = [];
       nock(ASAAS).get('/v3/customers').query({ cpfCnpj: c.document }).once().reply(200, { data: [] });
       nock(ASAAS)
-        .post('/v3/customers', (body) => {
-          posts.push(body);
-          return true;
-        })
+        .post('/v3/customers')
         .once()
         .delay(100)
-        .reply(200, { id: 'cus_novo', name: 'Cliente Concorrente', cpfCnpj: c.document });
+        .reply(200, async (req: Request) => {
+          posts.push(await req.json());
+          return { id: 'cus_novo', name: 'Cliente Concorrente', cpfCnpj: c.document };
+        });
 
       const ids = await Promise.all([service.ensureAsaasCustomer(c.id), service.ensureAsaasCustomer(c.id)]);
 
@@ -172,13 +172,15 @@ describe('Clientes: lista, arquivo e Asaas (integração)', () => {
   it('[CLI-04.2] duas edições seguidas: o Asaas recebe o estado da última', async () => {
     const c = await fx.customer({ asaasCustomerId: 'cus_sync' });
     const puts: Array<{ name: string }> = [];
+    // Captura no reply, que só roda quando o caminho casa (o filtro de corpo do nock vê qualquer PUT).
+    // nock 15: a função recebe só o Request (com 2 parâmetros vira estilo callback).
     nock(ASAAS)
-      .put('/v3/customers/cus_sync', (body) => {
-        puts.push(body);
-        return true;
-      })
+      .put('/v3/customers/cus_sync')
       .times(2)
-      .reply(200, { id: 'cus_sync' });
+      .reply(200, async (req: Request) => {
+        puts.push((await req.json()) as { name: string });
+        return { id: 'cus_sync' };
+      });
 
     await http().patch(`/api/v1/customers/${c.id}`).set('Authorization', fin).send({ name: 'Primeiro Nome' });
     await http().patch(`/api/v1/customers/${c.id}`).set('Authorization', fin).send({ name: 'Segundo Nome' });

@@ -11,6 +11,7 @@ import type { Env } from '../config/env.schema';
       useFactory: (config: ConfigService<Env, true>) => {
         const url = new URL(config.get('REDIS_URL', { infer: true }));
         return {
+          prefix: config.get('QUEUE_PREFIX', { infer: true }),
           connection: {
             host: url.hostname,
             port: Number(url.port || 6379),

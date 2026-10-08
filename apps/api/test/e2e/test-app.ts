@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import * as argon2 from 'argon2';
@@ -18,6 +19,8 @@ export async function createTestApp(): Promise<INestApplication> {
     NODE_ENV: 'test',
     DATABASE_URL: inject('databaseUrl'),
     REDIS_URL: inject('redisUrl'),
+    // Redis é compartilhado entre os arquivos de teste: filas isoladas por arquivo.
+    QUEUE_PREFIX: `test-${randomUUID()}`,
     JWT_ACCESS_SECRET: 'access-secret-for-tests-only-0123456789',
     JWT_REFRESH_SECRET: 'refresh-secret-for-tests-only-0123456789',
     ASAAS_ENV: 'sandbox',

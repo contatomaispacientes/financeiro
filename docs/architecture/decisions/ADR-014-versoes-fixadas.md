@@ -20,7 +20,7 @@ Consequências da atualização:
 - **TypeScript 6** deprecia `moduleResolution: node` e `baseUrl`: a API passou a `module`/`moduleResolution: NodeNext` (continua emitindo CommonJS e importa o `shared`, ESM, via `require()` do Node 22.12+); o web dispensou `baseUrl`.
 - **zod 4**: APIs atuais (`z.email()`, `z.url()`, `z.uuid()`, `{ error }` em `refine`, `ZodType`). As mensagens de validação passam a sair em **pt-BR** com `z.config(z.locales.ptBR())` em `packages/shared/src/zod.ts`, carregado pelo `shared` (vale para API e web).
 - **Vitest 4+**: `poolOptions` foi removido (a integração da API usa `fileParallelism: false`) e `dist/` deixou de ser excluído por padrão (cada pacote declara `include` em `src/`; o build do `shared` não compila testes).
-- **nock 15**: `.delay()` atrasa só o corpo; timeouts são simulados com `reply` assíncrono.
+- **nock 15**: `.delay()` atrasa só o corpo; timeouts são simulados com `reply` assíncrono. A função de `reply` recebe **só o `Request`** (com 2 parâmetros vira estilo callback e a resposta nunca sai); o filtro de corpo em `.put(path, fn)` é avaliado para qualquer requisição do host — para capturar corpos, use o `reply`.
 - **msw 3**: `onUnhandledRequest` virou `onUnhandledFrame`.
 
 Uma checagem pontual com `@typescript-eslint/no-deprecated` (lint com tipos) não encontrou uso de API depreciada após a atualização.

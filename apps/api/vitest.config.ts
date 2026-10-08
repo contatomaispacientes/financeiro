@@ -3,7 +3,7 @@ import { typescriptDecorators } from './vitest.plugins';
 
 export default defineConfig({
   plugins: [typescriptDecorators()],
-  esbuild: false,
+  oxc: false,
   test: {
     globals: true,
     root: './src',

@@ -13,19 +13,19 @@
   - Responder as perguntas em aberto do requirements e atualizar `asaas.md`/este design se algo divergir.
   - _Requisitos: COB-02, COB-03, COB-04 (preparação)_
 
-- [ ] 3. `AsaasClient` — payments: create, get, list, pixQrCode, identificationField; conversão centavos ↔ decimal; mapeamento de erros
+- [x] 3. `AsaasClient` — payments: create, get, list, pixQrCode, identificationField; conversão centavos ↔ decimal; mapeamento de erros
   - Testes unitários com nock e fixtures.
   - _Requisitos: COB-02.1, COB-05.1_
 
-- [ ] 4. `ChargesService.createFromPlan` para `SINGLE` + `POST /charges/preview` + `POST /charges`
+- [x] 4. `ChargesService.createFromPlan` para `SINGLE` + `POST /charges/preview` + `POST /charges`
   - DRAFT → Asaas → espelho; dados de pagamento best-effort; auditoria.
   - _Requisitos: COB-01.4, COB-01.6, COB-02.1–02.4, COB-05.2, COB-NF2_
 
-- [ ] 5. Falha e retomada: `retry`, `discard`, busca por `externalReference` antes de criar; `ctx.idempotencyKey`; retry com vencimento passado (COB-12.3)
+- [x] 5. Falha e retomada: `retry`, `discard`, busca por `externalReference` antes de criar; `ctx.idempotencyKey`; retry com vencimento passado (COB-12.3)
   - Teste: falha 502 → DRAFT; retry com o Asaas já tendo criado → não duplica; chamar 2× com a mesma `idempotencyKey` → um único registro local e no Asaas.
   - _Requisitos: COB-12.1, COB-12.2, COB-12.3 (e base de CTR-05.3)_
 
-- [ ] 6. `GET /charges/:id` e `GET /charges/:id/payment-info`
+- [x] 6. `GET /charges/:id` e `GET /charges/:id/payment-info`
   - _Requisitos: COB-05, COB-07.1_
 
 - [ ] 7. Tela Nova Cobrança (avulsa) e detalhe básico

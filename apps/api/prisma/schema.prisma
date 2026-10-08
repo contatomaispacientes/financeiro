@@ -1,0 +1,524 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────── Acesso ─────────
+
+enum Role {
+  ADMIN
+  FINANCEIRO
+  LEITURA
+}
+
+model User {
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  email         String         @unique
+  passwordHash  String         @map("password_hash")
+  role          Role           @default(FINANCEIRO)
+  active        Boolean        @default(true)
+  lastLoginAt   DateTime?      @map("last_login_at") @db.Timestamptz
+  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  data      Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([entity, entityId])
+  @@map("audit_logs")
+}
+
+model Settings {
+  id                    Int      @id @default(1)
+  companyName           String?  @map("company_name")
+  companyDocument       String?  @map("company_document")
+  companyCity           String?  @map("company_city")
+  defaultDueDays        Int      @default(3) @map("default_due_days")
+  defaultFinePct        Decimal  @default(2) @map("default_fine_pct") @db.Decimal(5, 2)
+  defaultInterestPct    Decimal  @default(1) @map("default_interest_pct") @db.Decimal(5, 2)
+  reminderDaysBefore    Int      @default(3) @map("reminder_days_before")
+  reminderOnDueDate     Boolean  @default(true) @map("reminder_on_due_date")
+  reminderDaysAfter     Int[]    @default([1, 7]) @map("reminder_days_after")
+  reminderChannels      String[] @default(["ASAAS"]) @map("reminder_channels")
+  contractChargeDueDays Int      @default(3) @map("contract_charge_due_days")
+  companySignerName     String?  @map("company_signer_name")
+  companySignerEmail    String?  @map("company_signer_email")
+  companySignerPhone    String?  @map("company_signer_phone")
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("settings")
+}
+
+// ───────── Cadastro ─────────
+
+enum PersonType {
+  PF
+  PJ
+}
+
+model Customer {
+  id               String         @id @default(uuid()) @db.Uuid
+  name             String
+  personType       PersonType     @map("person_type")
+  document         String         @unique
+  email            String?
+  phone            String?
+  address          Json?
+  asaasCustomerId  String?        @unique @map("asaas_customer_id")
+  asaasSyncError   String?        @map("asaas_sync_error")
+  remindersEnabled Boolean        @default(true) @map("reminders_enabled")
+  notes            String?
+  archivedAt       DateTime?      @map("archived_at") @db.Timestamptz
+  createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  charges          Charge[]
+  subscriptions    Subscription[]
+  contracts        Contract[]
+
+  @@index([name])
+  @@map("customers")
+}
+
+model Service {
+  id                String   @id @default(uuid()) @db.Uuid
+  name              String
+  description       String?
+  defaultPriceCents Int      @map("default_price_cents")
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("services")
+}
+
+// ───────── Cobranças ─────────
+
+enum ChargeStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  PAID
+  OVERDUE
+  CANCELED
+  REFUNDED
+  PARTIALLY_REFUNDED
+  CHARGEBACK
+}
+
+enum ChargeType {
+  SINGLE
+  INSTALLMENT
+  RECURRING
+}
+
+enum ChargeOrigin {
+  MANUAL
+  CONTRACT
+  SUBSCRIPTION
+}
+
+enum BillingType {
+  PIX
+  BOLETO
+  CREDIT_CARD
+  UNDEFINED
+}
+
+enum Cycle {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  BIMONTHLY
+  QUARTERLY
+  SEMIANNUALLY
+  YEARLY
+}
+
+model Charge {
+  id                  String       @id @default(uuid()) @db.Uuid
+  customerId          String       @map("customer_id") @db.Uuid
+  contractId          String?      @map("contract_id") @db.Uuid
+  subscriptionId      String?      @map("subscription_id") @db.Uuid
+  origin              ChargeOrigin @default(MANUAL)
+  type                ChargeType
+  status              ChargeStatus @default(DRAFT)
+  billingType         BillingType  @map("billing_type")
+  valueCents          Int          @map("value_cents")
+  netValueCents       Int?         @map("net_value_cents")
+  refundedCents       Int          @default(0) @map("refunded_cents")
+  discountCents       Int          @default(0) @map("discount_cents")
+  finePct             Decimal      @default(0) @map("fine_pct") @db.Decimal(5, 2)
+  interestPct         Decimal      @default(0) @map("interest_pct") @db.Decimal(5, 2)
+  dueDate             DateTime     @map("due_date") @db.Date
+  description         String
+  installmentNumber   Int?         @map("installment_number")
+  installmentCount    Int?         @map("installment_count")
+  externalReference   String       @unique @map("external_reference")
+  groupKey            String?      @map("group_key")
+  asaasPaymentId      String?      @unique @map("asaas_payment_id")
+  asaasInstallmentId  String?      @map("asaas_installment_id")
+  invoiceUrl          String?      @map("invoice_url")
+  bankSlipUrl         String?      @map("bank_slip_url")
+  pixPayload          String?      @map("pix_payload")
+  identificationField String?      @map("identification_field")
+  paidAt              DateTime?    @map("paid_at") @db.Date
+  refundRequestedAt   DateTime?    @map("refund_requested_at") @db.Timestamptz
+  lastEventAt         DateTime?    @map("last_event_at") @db.Timestamptz
+  lastError           String?      @map("last_error")
+  createdById         String?      @map("created_by_id") @db.Uuid
+  createdAt           DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  customer            Customer     @relation(fields: [customerId], references: [id])
+  contract            Contract?    @relation(fields: [contractId], references: [id])
+  subscription        Subscription? @relation(fields: [subscriptionId], references: [id])
+  items               ChargeItem[]
+  refunds             ChargeRefund[]
+  reminders           ReminderLog[]
+
+  @@index([status, dueDate])
+  @@index([customerId])
+  @@index([asaasInstallmentId])
+  @@index([groupKey])
+  @@map("charges")
+}
+
+enum ChargeRefundKind {
+  REFUND
+  CHARGEBACK
+  CHARGEBACK_REVERSAL
+}
+
+model ChargeRefund {
+  id             String           @id @default(uuid()) @db.Uuid
+  chargeId       String           @map("charge_id") @db.Uuid
+  kind           ChargeRefundKind @default(REFUND)
+  valueCents     Int              @map("value_cents")
+  refundedAt     DateTime         @map("refunded_at") @db.Date
+  webhookEventId String           @unique @map("webhook_event_id") @db.Uuid
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  charge         Charge           @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([refundedAt])
+  @@map("charge_refunds")
+}
+
+model ChargeItem {
+  id             String @id @default(uuid()) @db.Uuid
+  chargeId       String @map("charge_id") @db.Uuid
+  serviceId      String? @map("service_id") @db.Uuid
+  description    String
+  quantity       Int
+  unitPriceCents Int    @map("unit_price_cents")
+  totalCents     Int    @map("total_cents")
+  charge         Charge @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@map("charge_items")
+}
+
+// ───────── Assinaturas ─────────
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  CANCELED
+}
+
+model Subscription {
+  id                  String             @id @default(uuid()) @db.Uuid
+  customerId          String             @map("customer_id") @db.Uuid
+  contractId          String?            @unique @map("contract_id") @db.Uuid
+  asaasSubscriptionId String?            @unique @map("asaas_subscription_id")
+  status              SubscriptionStatus @default(ACTIVE)
+  billingType         BillingType        @map("billing_type")
+  valueCents          Int                @map("value_cents")
+  cycle               Cycle
+  nextDueDate         DateTime           @map("next_due_date") @db.Date
+  endDate             DateTime?          @map("end_date") @db.Date
+  description         String
+  finePct             Decimal            @default(0) @map("fine_pct") @db.Decimal(5, 2)
+  interestPct         Decimal            @default(0) @map("interest_pct") @db.Decimal(5, 2)
+  externalReference   String             @unique @map("external_reference")
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  customer            Customer           @relation(fields: [customerId], references: [id])
+  contract            Contract?          @relation(fields: [contractId], references: [id])
+  items               SubscriptionItem[]
+  charges             Charge[]
+
+  @@map("subscriptions")
+}
+
+model SubscriptionItem {
+  id             String       @id @default(uuid()) @db.Uuid
+  subscriptionId String       @map("subscription_id") @db.Uuid
+  serviceId      String?      @map("service_id") @db.Uuid
+  description    String
+  quantity       Int
+  unitPriceCents Int          @map("unit_price_cents")
+  totalCents     Int          @map("total_cents")
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@map("subscription_items")
+}
+
+// ───────── Webhooks ─────────
+
+enum EventSource {
+  ASAAS
+  CONTRACT
+  RECONCILE
+}
+
+model WebhookEvent {
+  id              String      @id @default(uuid()) @db.Uuid
+  source          EventSource
+  externalEventId String      @map("external_event_id")
+  event           String
+  resourceId      String?     @map("resource_id")
+  payload         Json
+  receivedAt      DateTime    @default(now()) @map("received_at") @db.Timestamptz
+  processedAt     DateTime?   @map("processed_at") @db.Timestamptz
+  result          String?
+  attempts        Int         @default(0)
+  error           String?
+
+  @@unique([source, externalEventId])
+  @@index([resourceId])
+  @@index([processedAt])
+  @@map("webhook_events")
+}
+
+// ───────── Contratos ─────────
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  PARTIALLY_SIGNED
+  SIGNED
+  REFUSED
+  EXPIRED
+  CANCELED
+}
+
+enum SignerRole {
+  CLIENT
+  COMPANY
+}
+
+enum SignerStatus {
+  PENDING
+  SIGNED
+  REFUSED
+}
+
+model ContractTemplate {
+  id                 String     @id @default(uuid()) @db.Uuid
+  name               String
+  provider           String     @default("clicksign")
+  providerTemplateId String     @map("provider_template_id")
+  variableMap        Json       @map("variable_map")
+  active             Boolean    @default(true)
+  createdAt          DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+  contracts          Contract[]
+
+  @@map("contract_templates")
+}
+
+model Contract {
+  id                 String         @id @default(uuid()) @db.Uuid
+  customerId         String         @map("customer_id") @db.Uuid
+  templateId         String         @map("template_id") @db.Uuid
+  title              String
+  status             ContractStatus @default(DRAFT)
+  provider           String
+  providerEnvelopeId String?        @unique @map("provider_envelope_id")
+  providerDocumentId String?        @unique @map("provider_document_id")
+  providerError      String?        @map("provider_error")
+  providerProgress   Json?          @map("provider_progress")
+  variables          Json
+  chargePlan         Json           @map("charge_plan")
+  totalCents         Int            @map("total_cents")
+  sentAt             DateTime?      @map("sent_at") @db.Timestamptz
+  signedAt           DateTime?      @map("signed_at") @db.Timestamptz
+  expiresAt          DateTime?      @map("expires_at") @db.Timestamptz
+  canceledAt         DateTime?      @map("canceled_at") @db.Timestamptz
+  signedFileKey      String?        @map("signed_file_key")
+  chargeGeneratedAt  DateTime?      @map("charge_generated_at") @db.Timestamptz
+  chargeError        String?        @map("charge_error")
+  createdById        String?        @map("created_by_id") @db.Uuid
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  customer           Customer       @relation(fields: [customerId], references: [id])
+  template           ContractTemplate @relation(fields: [templateId], references: [id])
+  signers            ContractSigner[]
+  charges            Charge[]
+  subscription       Subscription?
+
+  @@index([status])
+  @@map("contracts")
+}
+
+model ContractSigner {
+  id               String       @id @default(uuid()) @db.Uuid
+  contractId       String       @map("contract_id") @db.Uuid
+  role             SignerRole
+  name             String
+  email            String
+  phone            String?
+  document         String?
+  signOrder        Int          @default(1) @map("sign_order")
+  authMethod       String       @default("email") @map("auth_method")
+  status           SignerStatus @default(PENDING)
+  providerSignerId String?      @map("provider_signer_id")
+  signUrl          String?      @map("sign_url")
+  signedAt         DateTime?    @map("signed_at") @db.Timestamptz
+  contract         Contract     @relation(fields: [contractId], references: [id], onDelete: Cascade)
+
+  @@map("contract_signers")
+}
+
+// ───────── Contas a pagar ─────────
+
+enum ExpenseStatus {
+  OPEN
+  PAID
+  CANCELED
+}
+
+model ExpenseCategory {
+  id          String              @id @default(uuid()) @db.Uuid
+  name        String              @unique
+  active      Boolean             @default(true)
+  expenses    Expense[]
+  recurrences ExpenseRecurrence[]
+
+  @@map("expense_categories")
+}
+
+model ExpenseRecurrence {
+  id               String          @id @default(uuid()) @db.Uuid
+  description      String
+  categoryId       String          @map("category_id") @db.Uuid
+  supplier         String?
+  valueCents       Int             @map("value_cents")
+  dayOfMonth       Int             @map("day_of_month")
+  startMonth       String          @map("start_month")
+  endMonth         String?         @map("end_month")
+  active           Boolean         @default(true)
+  lastGeneratedFor String?         @map("last_generated_for")
+  createdAt        DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  category         ExpenseCategory @relation(fields: [categoryId], references: [id])
+  expenses         Expense[]
+
+  @@map("expense_recurrences")
+}
+
+model Expense {
+  id             String             @id @default(uuid()) @db.Uuid
+  description    String
+  categoryId     String             @map("category_id") @db.Uuid
+  supplier       String?
+  valueCents     Int                @map("value_cents")
+  dueDate        DateTime           @map("due_date") @db.Date
+  status         ExpenseStatus      @default(OPEN)
+  paidAt         DateTime?          @map("paid_at") @db.Date
+  paidValueCents Int?               @map("paid_value_cents")
+  paymentMethod  String?            @map("payment_method")
+  recurrenceId   String?            @map("recurrence_id") @db.Uuid
+  referenceMonth String?            @map("reference_month")
+  notes          String?
+  attachmentKey  String?            @map("attachment_key")
+  createdById    String?            @map("created_by_id") @db.Uuid
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  category       ExpenseCategory    @relation(fields: [categoryId], references: [id])
+  recurrence     ExpenseRecurrence? @relation(fields: [recurrenceId], references: [id])
+
+  @@unique([recurrenceId, referenceMonth])
+  @@index([status, dueDate])
+  @@map("expenses")
+}
+
+// ───────── Régua ─────────
+
+enum ReminderKind {
+  CREATED
+  BEFORE_DUE
+  ON_DUE
+  AFTER_DUE
+  MANUAL
+  PAID
+  REFUNDED
+  CANCELED
+}
+
+enum ReminderChannel {
+  ASAAS
+  EMAIL
+  WHATSAPP
+}
+
+enum ReminderStatus {
+  SENT
+  FAILED
+  SKIPPED
+}
+
+model ReminderTemplate {
+  id         String          @id @default(uuid()) @db.Uuid
+  kind       ReminderKind
+  channel    ReminderChannel
+  offsetDays Int?            @map("offset_days")
+  subject    String?
+  body       String
+  active     Boolean         @default(true)
+  updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("reminder_templates")
+}
+
+model ReminderLog {
+  id            String          @id @default(uuid()) @db.Uuid
+  chargeId      String          @map("charge_id") @db.Uuid
+  kind          ReminderKind
+  channel       ReminderChannel
+  offsetDays    Int             @map("offset_days")
+  referenceDate DateTime        @map("reference_date") @db.Date
+  status        ReminderStatus
+  error         String?
+  sentAt        DateTime        @default(now()) @map("sent_at") @db.Timestamptz
+  charge        Charge          @relation(fields: [chargeId], references: [id], onDelete: Cascade)
+
+  @@index([chargeId])
+  @@map("reminder_logs")
+}

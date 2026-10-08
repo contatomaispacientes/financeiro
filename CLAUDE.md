@@ -41,7 +41,7 @@ Regras:
 - Monorepo **pnpm workspaces**: `apps/api` (NestJS + TypeScript), `apps/web` (React + Vite + TypeScript), `packages/shared` (schemas zod, tipos, enums, utilitários de dinheiro/data).
 - **PostgreSQL** + **Prisma** (migrations versionadas). **Redis** + **BullMQ** para filas e jobs agendados.
 - Front: React Router, TanStack Query, react-hook-form + zod, Tailwind CSS + shadcn/ui, Recharts.
-- Testes: Jest + Supertest + Testcontainers (api), Vitest (shared), Vitest + Testing Library (web), Playwright (e2e, a partir do M3).
+- Testes: Vitest + Supertest + Testcontainers (api, ADR-012), Vitest (shared), Vitest + Testing Library (web), Playwright (e2e, a partir do M3).
 
 ## Regras de código que não se negociam
 

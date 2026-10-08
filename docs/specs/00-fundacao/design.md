@@ -57,6 +57,7 @@
 | GET/POST/PATCH | `/users`, `/users/:id` | ADMIN | FND-03 |
 | POST | `/users/:id/reset-password` `{ newPassword }` | ADMIN | FND-03.1 |
 | GET/PATCH | `/settings` | GET todos, PATCH ADMIN | FND-04.1 |
+| GET | `/settings/environment` → `{ asaasEnv }` | todos | FND-06.1 (selo do ambiente) |
 | GET | `/settings/integrations` | ADMIN | FND-04.2 |
 | POST | `/settings/integrations/asaas/test` | ADMIN | FND-04.3 |
 | GET | `/audit-logs?entity&userId&from&to&page` | ADMIN | FND-05.2 |
@@ -106,7 +107,9 @@ export const SettingsUpdateSchema = z.object({
 | `UNAUTHORIZED` | 401 | sem token / token inválido |
 | `FORBIDDEN` | 403 | FND-03.3 |
 | `NOT_FOUND` | 404 | |
-| `LAST_ADMIN` | 409 | FND-03.4 |
+| `LAST_ADMIN` | 409 | FND-03.4 (desativar ou rebaixar o último ADMIN ativo) |
+| `EMAIL_IN_USE` | 409 | e-mail já usado por outro usuário (FND-03.1) |
+| `INTERNAL_ERROR` | 500 | erro inesperado; detalhes só no log |
 | `RATE_LIMITED` | 429 | FND-02.5 |
 
 ## Front
@@ -147,3 +150,7 @@ Serviços postgres e redis; passos: `pnpm install --frozen-lockfile` → `pnpm l
 | --- | --- |
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Revisão das specs 01–08: `reminderMessage` sai de Settings (mensagens passam para `reminder_templates`, spec 08); entram `companySigner*` (signatário padrão da empresa, spec 07). Sem impacto nas tarefas já planejadas além do schema de Settings |
+| 07/10/2026 | Tarefa 6: e-mail do admin do seed passa de `admin@local` para `admin@financeiro.local` (o `LoginSchema` rejeita domínio sem ponto). Refresh token é opaco (32 bytes aleatórios) e o hash guardado é HMAC-SHA256 com `JWT_REFRESH_SECRET`. E-mail normalizado em minúsculas no login e no cadastro. Testes da API em Vitest (ADR-012) |
+| 07/10/2026 | Tarefa 7: matriz de permissões vira código em `packages/shared/permissions.ts` (`Permission`, `can()`), usado por `@Roles` na API e pelo menu no web. Novo erro `EMAIL_IN_USE`. Desativar, trocar o papel ou redefinir a senha de um usuário revoga os refresh tokens dele. Auditoria: `auth.login`, `auth.login_failed` (`{ email, reason }`), `user.create`, `user.update` (só campos alterados), `user.reset_password` (sem dados). Filtro de período da auditoria usa o dia de São Paulo, datas inclusivas |
+| 07/10/2026 | Tarefa 8: campos de texto opcionais do `SettingsUpdateSchema` aceitam `null` (para limpar); `companyDocument` gravado só com dígitos; PATCH vazio → 400. O resultado do "Testar conexão" é guardado como auditoria `integration.asaas_test` (sem coluna nova) e `GET /settings/integrations` mostra o mais recente. `AsaasClient.ping()` não faz retry (diagnóstico) e devolve 200 com `{ ok, latencyMs, error }` também em falha, com os códigos da tabela de erros de `asaas.md` |
+| 07/10/2026 | Tarefa 9: nova rota `GET /settings/environment` (todos os papéis) para o selo do ambiente, já que `/settings/integrations` é só ADMIN. Renovação do token serializada entre abas com Web Locks e deduplicada na aba (evita disparar a detecção de reuso de FND-02.4 com duas abas ou com o StrictMode). Menu filtrado por `can()` do `shared`; rotas sem tela ainda mostram "Em construção" com a spec responsável. `DatePicker` = `<input type="date">` nativo. Auditoria em `/configuracoes/auditoria`. Dependências do web no ADR-013 |

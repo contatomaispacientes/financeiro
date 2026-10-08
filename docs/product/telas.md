@@ -25,6 +25,7 @@ Layout geral: menu lateral escuro (vira barra horizontal no celular) com grupos 
 | `/configuracoes/mensagens` | Mensagens ao cliente | Uma mensagem por processo (emitida, antes do vencimento, vence hoje, em atraso, envio manual, paga, estornada, cancelada) e canal, com ativar/desativar, mensagem específica por dia da régua, variáveis clicáveis, prévia e "restaurar padrão" | 08 |
 | `/configuracoes/webhooks` | Log de eventos | Eventos recebidos (Asaas e contratos), status de processamento, erro, botão reprocessar | 04 |
 | `/configuracoes/usuarios` | Usuários | CRUD e papel | 00 |
+| `/configuracoes/auditoria` | Auditoria | Registros com filtros por entidade, usuário e período | 00 |
 
 ## Padrões de interface
 

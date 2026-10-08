@@ -543,7 +543,7 @@ model ReminderLog {
 
 ## Seeds (dev)
 
-- Usuário `admin@local` / senha do `.env` (`SEED_ADMIN_PASSWORD`).
+- Usuário `admin@financeiro.local` / senha do `.env` (`SEED_ADMIN_PASSWORD`). (Precisa ter domínio com ponto: o `LoginSchema` usa `z.string().email()`.)
 - Settings padrão.
 - `reminder_templates` padrão: um modelo de e-mail para cada tipo (`CREATED`, `BEFORE_DUE`, `ON_DUE`, `AFTER_DUE`, `MANUAL`, `PAID`, `REFUNDED`, `CANCELED`), textos da spec 08; `PAID`, `REFUNDED` e `CANCELED` começam inativos.
 - Categorias de despesa: Pessoal, Impostos, Escritório, Ferramentas, Infraestrutura, Serviços, Marketing, Outros.

@@ -36,7 +36,7 @@ financeiro/
 | Docs da API | `@nestjs/swagger` em `/api/docs` (só fora de produção) | |
 | Armazenamento de arquivos | `StorageService` com driver `local` (dev) e `s3` (S3-compatível) | PDFs de contrato assinado |
 | E-mail | Nodemailer (SMTP) atrás de `MailProvider`; Mailpit em dev | Provedor de produção pendente |
-| Testes | Jest + Supertest; Testcontainers (Postgres, Redis) para integração; HTTP externo mockado com `nock` | `test/fixtures/asaas/*.json` com payloads reais do sandbox |
+| Testes | Vitest + Supertest (ADR-012); Testcontainers (Postgres, Redis) para integração; HTTP externo mockado com `nock` | `test/fixtures/asaas/*.json` com payloads reais do sandbox |
 
 ### Estrutura de módulo (padrão)
 

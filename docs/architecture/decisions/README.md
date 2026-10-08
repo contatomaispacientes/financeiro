@@ -15,3 +15,5 @@ Formato curto: contexto → decisão → consequências. Um ADR aceito só muda 
 | [009](ADR-009-clicksign.md) | Clicksign (API v3) como provedor de assinatura eletrônica | Aceito |
 | [010](ADR-010-ids-de-job-e-reenfileiramento.md) | Ids de job sem `:` e reenfileiramento manual no BullMQ | Aceito |
 | [011](ADR-011-chargeback-como-saida.md) | Chargeback lançado como saída no fluxo de caixa | Aceito (provisório) |
+| [012](ADR-012-vitest-na-api.md) | Vitest na API (NestJS 12 é ESM) e dependências do scaffold | Aceito |
+| [013](ADR-013-dependencias-do-web.md) | Dependências do web trazidas pelo shadcn/ui e pelo scaffold | Aceito |

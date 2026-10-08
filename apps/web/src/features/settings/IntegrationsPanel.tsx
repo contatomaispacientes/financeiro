@@ -9,6 +9,7 @@ import { errorMessage } from '@/lib/form-errors';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useIntegrations, useTestAsaas } from './api';
+import { WebhookHealthCard } from '../webhooks/WebhookEventsPage';
 
 function Configured({ ok, yes = 'Configurado', no = 'Não configurado' }: { ok: boolean; yes?: string; no?: string }) {
   const Icon = ok ? CircleCheck : CircleX;
@@ -91,6 +92,7 @@ export function IntegrationsPanel() {
 
   return (
     <div className="grid gap-4">
+      <WebhookHealthCard />
       <Card>
         <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
           <div>

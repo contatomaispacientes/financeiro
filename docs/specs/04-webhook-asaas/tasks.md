@@ -28,7 +28,7 @@
 - [ ] 7. Importação de cobranças de assinatura e atualização de `next_due_date`
   - _Requisitos: WHK-02.2 (importação), WHK-02.6_
 
-- [ ] 8. Log de eventos (API + tela), reprocessar, card de saúde
+- [x] 8. Log de eventos (API + tela), reprocessar, card de saúde
   - _Requisitos: WHK-03.1–03.3_
 
 - [ ] 9. `ReconcileService` com cron 06:00, "Reconciliar agora", limite de concorrência, eventos RECONCILE; job mensal de retenção

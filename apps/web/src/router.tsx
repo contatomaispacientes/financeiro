@@ -15,6 +15,7 @@ import { ChargeDetailPage } from '@/features/charges/ChargeDetailPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { DashboardPage } from '@/features/reports/DashboardPage';
 import { CashflowPage } from '@/features/reports/CashflowPage';
+import { WebhookEventsPage } from '@/features/webhooks/WebhookEventsPage';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -48,7 +49,7 @@ export const routes: RouteObject[] = [
             element: <RequireRole permission="ADMINISTER" />,
             children: [
               { path: 'usuarios', element: <UsersPage /> },
-              { path: 'webhooks', element: <PlaceholderPage title="Log de eventos" spec="04" /> },
+              { path: 'webhooks', element: <WebhookEventsPage /> },
               { path: 'auditoria', element: <AuditPage /> },
             ],
           },

@@ -10,6 +10,8 @@ import { AuditPage } from '@/features/audit/AuditPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
+import { NewChargePage } from '@/features/charges/NewChargePage';
+import { ChargeDetailPage } from '@/features/charges/ChargeDetailPage';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -25,10 +27,11 @@ export const routes: RouteObject[] = [
             path: 'cobrancas/nova',
             element: (
               <RequireRole permission="MANAGE_CHARGES">
-                <PlaceholderPage title="Nova cobrança" spec="03" />
+                <NewChargePage />
               </RequireRole>
             ),
           },
+          { path: 'cobrancas/:id', element: <ChargeDetailPage /> },
           { path: 'cobrancas', element: <PlaceholderPage title="Cobranças" spec="03" /> },
           { path: 'assinaturas', element: <PlaceholderPage title="Recorrências" spec="03" /> },
           { path: 'contratos', element: <PlaceholderPage title="Contratos" spec="07" /> },

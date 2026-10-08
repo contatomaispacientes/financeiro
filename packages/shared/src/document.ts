@@ -105,3 +105,28 @@ export function maskDocument(value: string): string {
   // Unknown format — mask all
   return '*'.repeat(digits.length);
 }
+
+/**
+ * Formats a stored document (digits only) for display (CLI-01.4).
+ * "52998224725" → "529.982.247-25"; "11222333000181" → "11.222.333/0001-81". Unknown length: returned as is.
+ */
+export function formatDocument(value: string): string {
+  const d = onlyDigits(value);
+  if (d.length === 11) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  if (d.length === 14) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+  return value;
+}
+
+/** "11999990000" → "(11) 99999-0000"; "1133334444" → "(11) 3333-4444". Unknown length: returned as is. */
+export function formatPhone(value: string): string {
+  const d = onlyDigits(value);
+  if (d.length === 11) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+  if (d.length === 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+  return value;
+}
+
+/** "01310100" → "01310-100". */
+export function formatPostalCode(value: string): string {
+  const d = onlyDigits(value);
+  return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : value;
+}

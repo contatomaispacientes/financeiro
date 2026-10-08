@@ -2,7 +2,7 @@
 
 > Status: **Aprovado**
 
-- [ ] 1. Schemas de cliente em `shared` + testes
+- [x] 1. Schemas de cliente em `shared` + testes
   - _Requisitos: CLI-01.1, CLI-01.2, CLI-01.4, CLI-01.5 (`isAddressComplete`)_
 
 - [ ] 2. Migration de busca (unaccent, pg_trgm, índice trigram em nome)

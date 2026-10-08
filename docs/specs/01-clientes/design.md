@@ -25,25 +25,19 @@ Tabela `customers` (data-model.md). Índices extras via migration SQL:
 
 ## Schemas (shared/schemas/customer.ts)
 
-```ts
-export const AddressSchema = z.object({
-  postalCode: z.string().regex(/^\d{8}$/), street: z.string().min(2), number: z.string().min(1),
-  complement: z.string().optional(), district: z.string().min(2), city: z.string().min(2), state: z.string().length(2),
-});
-// Base sem defaults: CustomerUpdateSchema = base.partial() não pode reaplicar default em PATCH
-const CustomerBaseSchema = z.object({
-  name: z.string().trim().min(2).max(120),
-  document: z.string().transform(onlyDigits).refine(isValidCpfOrCnpj, 'CPF ou CNPJ inválido'),
-  email: z.string().email().optional().or(z.literal('')),
-  phone: z.string().transform(onlyDigits).refine((v) => v === '' || /^\d{10,11}$/.test(v)).optional(),
-  address: AddressSchema.optional(),
-  notes: z.string().max(2000).optional(),
-  remindersEnabled: z.boolean(), // régua e notificações do Asaas (spec 08, REG-05.1)
-});
-export const CustomerCreateSchema = CustomerBaseSchema.extend({ remindersEnabled: z.boolean().default(true) });
-export const CustomerUpdateSchema = CustomerBaseSchema.partial();
-export const isAddressComplete = (a?: Address) => !!a && AddressSchema.safeParse(a).success; // CLI-01.5 / CTR-02.9
-```
+Implementado em `packages/shared/src/schemas/customer.ts` (zod 4). Resumo:
+
+| Campo | Regra | Saída |
+| --- | --- | --- |
+| `name` | trim, 2–120 | texto |
+| `document` | aceita máscara; CPF ou CNPJ com dígitos verificadores | só dígitos (CLI-01.4) |
+| `email` | trim + minúsculas; `''` → `null` | `string \| null` |
+| `phone` | aceita máscara; 10 ou 11 dígitos com DDD; `''` → `null` | só dígitos |
+| `address` | `AddressSchema` ou `null`: CEP 8 dígitos (aceita máscara), logradouro, número, bairro, cidade, UF entre as 27 siglas (maiúscula); `complement` opcional | objeto normalizado |
+| `notes` | trim, até 2000; `''` → `null` | texto |
+| `remindersEnabled` | `CustomerCreateSchema`: padrão `true`; `CustomerUpdateSchema = base.partial()` **sem** default (PATCH não reaplica) | boolean |
+
+Em PATCH, campo ausente = não altera; `null` = apaga. Helpers: `isAddressComplete(address)` (CLI-01.5 / CTR-02.9), `personTypeFromDocument(document)` (CLI-01.1), e em `document.ts` `formatDocument`, `formatPhone`, `formatPostalCode` para exibição.
 
 ## Regras
 
@@ -91,3 +85,4 @@ export const isAddressComplete = (a?: Address) => !!a && AddressSchema.safeParse
 | --- | --- |
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Revisão: schema de update sem defaults, sync sem jobId fixo (ADR-010), `notificationDisabled` considera o cliente, aviso de endereço |
+| 08/10/2026 | Tarefa 1: schema em sintaxe do zod 4 (ADR-014); campos opcionais vazios viram `null` (PATCH: ausente = mantém, `null` = apaga); CEP aceita máscara; UF validada contra as 27 siglas; mensagens em pt-BR; helpers de formatação para exibição |

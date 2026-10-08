@@ -3,7 +3,7 @@ packages:
   - "packages/*"
 allowBuilds:
   '@prisma/engines': true
-  '@scarf/scarf': true
+  '@scarf/scarf': false # telemetria de dependência (swagger-ui-dist)
   '@swc/core': true
   argon2: true
   esbuild: true

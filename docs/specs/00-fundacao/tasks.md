@@ -52,7 +52,7 @@
   - Testes de componente: login, expiração do token → refresh → repetição da chamada; logout ao falhar refresh com retorno à rota.
   - _Requisitos: FND-06.2, FND-03.1, FND-04, FND-05.2_
 
-- [ ] 11. CI
+- [x] 11. CI
   - Workflow do GitHub Actions conforme design; badge no README.
   - _Requisitos: FND-07.1_
 

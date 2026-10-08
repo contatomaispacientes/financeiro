@@ -5,7 +5,7 @@ import type { ChargeDetailDto } from '@financeiro/shared';
 import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import { formatBRL, formatDate } from '@/lib/format';
-import { billingTypeLabels } from './labels';
+import { billingTypeLabels, cycleLabels } from './labels';
 import { PaymentData } from './PaymentData';
 
 /** Resultado da Nova cobrança: o que mandar ao cliente, já pronto para copiar (O1, COB-05.3). */
@@ -20,7 +20,11 @@ export function ChargeCreated({ charge, onCreateAnother }: { charge: ChargeDetai
           <CircleCheck aria-hidden className="size-6" />
         </span>
         <h1 ref={headingRef} tabIndex={-1} className="mt-1 text-xl font-semibold tracking-tight outline-none">
-          Cobrança gerada no Asaas
+          {charge.subscription
+            ? 'Recorrência criada no Asaas'
+            : charge.installments.length
+              ? 'Parcelamento gerado no Asaas'
+              : 'Cobrança gerada no Asaas'}
         </h1>
         <p className="text-sm text-muted-foreground">{charge.customer.name}</p>
         <p className="tabular mt-2 text-3xl font-semibold">{formatBRL(charge.valueCents)}</p>
@@ -34,7 +38,35 @@ export function ChargeCreated({ charge, onCreateAnother }: { charge: ChargeDetai
       <dl className="grid gap-1 border-b px-4 py-4 text-sm sm:grid-cols-[9rem_1fr] sm:px-6">
         <dt className="text-muted-foreground">ID Asaas</dt>
         <dd className="tabular">{charge.asaasPaymentId ?? '—'}</dd>
+        {charge.subscription && (
+          <>
+            <dt className="text-muted-foreground">Recorrência</dt>
+            <dd>
+              {formatBRL(charge.subscription.valueCents)} · {cycleLabels[charge.subscription.cycle].toLowerCase()}
+              {charge.subscription.endDate ? `, até ${formatDate(charge.subscription.endDate)}` : ', sem data final'}
+            </dd>
+          </>
+        )}
       </dl>
+
+      {charge.installments.length > 0 && (
+        <section aria-labelledby="installments" className="border-b px-4 py-4 sm:px-6">
+          <h2 id="installments" className="mb-2 text-sm font-medium">
+            {charge.installments.length} parcelas
+          </h2>
+          <ol className="tabular grid gap-x-6 text-sm sm:grid-cols-2">
+            {charge.installments.map((p) => (
+              <li key={p.id} className="flex justify-between gap-3 border-b py-1">
+                <span className="text-muted-foreground">
+                  {p.installmentNumber}ª · {formatDate(p.dueDate)}
+                </span>
+                <span>{formatBRL(p.valueCents)}</span>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-2 text-xs text-muted-foreground">Abaixo, os dados de pagamento da 1ª parcela.</p>
+        </section>
+      )}
 
       <section aria-labelledby="payment-data" className="px-4 py-5 sm:px-6">
         <h2 id="payment-data" className="mb-3 text-sm font-medium">

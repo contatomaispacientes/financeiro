@@ -28,3 +28,8 @@ export function projectSubscriptionDueDates(
 export function addMonthsToYearMonth(month: string, n: number): string {
   return addMonthsClamped(`${month}-01`, n).slice(0, 7);
 }
+
+/** Vencimento do ciclo seguinte de uma assinatura. */
+export function addCycle(date: string, cycle: Cycle): string {
+  return MONTHS[cycle] ? addMonthsClamped(date, MONTHS[cycle]!) : addDays(date, DAYS[cycle]!);
+}

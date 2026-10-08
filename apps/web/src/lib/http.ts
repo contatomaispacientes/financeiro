@@ -12,7 +12,9 @@ export class ApiError extends Error {
   }
 }
 
-export type Query = Record<string, string | number | boolean | null | undefined>;
+type QueryValue = string | number | boolean | null | undefined;
+/** Lista vira a chave repetida (`?status=PAID&status=CONFIRMED`). */
+export type Query = Record<string, QueryValue | readonly string[]>;
 
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
@@ -24,7 +26,8 @@ export interface RequestOptions {
 export function buildUrl(path: string, query?: Query): string {
   const url = new URL(API_BASE + path, window.location.origin);
   for (const [key, value] of Object.entries(query ?? {})) {
-    if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
+    if (Array.isArray(value)) for (const item of value) url.searchParams.append(key, item);
+    else if (value !== undefined && value !== null && value !== '') url.searchParams.set(key, String(value));
   }
   return url.toString();
 }

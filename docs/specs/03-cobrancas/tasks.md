@@ -28,32 +28,33 @@
 - [x] 6. `GET /charges/:id` e `GET /charges/:id/payment-info`
   - _Requisitos: COB-05, COB-07.1_
 
-- [ ] 7. Tela Nova Cobrança (avulsa) e detalhe básico
+- [x] 7. Tela Nova Cobrança (avulsa) e detalhe básico
   - Formulário completo, prévia, sucesso, erro com retry; detalhe com dados de pagamento e cópia.
   - _Requisitos: COB-01.1–01.3, COB-05.3, COB-07.1_
 
 ## Parte 2 — cobranças completas (M3)
 
-- [ ] 8. Parcelada: criação do installment, casamento das parcelas, telas de parcelas
+- [x] 8. Parcelada: criação do installment, casamento das parcelas, telas de parcelas
   - _Requisitos: COB-03.1–03.4_
 
-- [ ] 9. Recorrente: `AsaasClient` subscriptions (inclui `listSubscriptions` por `externalReference`); criação e retry sem duplicar; importação da 1ª cobrança com upsert; `/subscriptions` (lista e detalhe)
+- [x] 9. Recorrente: `AsaasClient` subscriptions (inclui `listSubscriptions` por `externalReference`); criação e retry sem duplicar; importação da 1ª cobrança com upsert; `/subscriptions` (lista e detalhe)
   - _Requisitos: COB-04.1, COB-04.2, COB-04.4_
 
-- [ ] 10. Importação de cobranças de assinatura vindas do webhook (`PAYMENT_CREATED` com `subscription`) — integra com a spec 04
+- [x] 10. Importação de cobranças de assinatura vindas do webhook (`PAYMENT_CREATED` com `subscription`) — integra com a spec 04
   - _Requisitos: COB-04.3_
 
-- [ ] 11. Lista de cobranças com filtros, contagem por status e soma
+- [x] 11. Lista de cobranças com filtros, contagem por status e soma
   - _Requisitos: COB-06.1–06.3_
 
-- [ ] 12. Cancelar (individual e parcelas restantes) com confirmação e auditoria
+- [x] 12. Cancelar (individual e parcelas restantes) com confirmação e auditoria
   - _Requisitos: COB-08.1–08.4_
 
-- [ ] 13. Estornar (ADMIN), `refund_requested_at`, selo "Estorno solicitado"
+- [x] 13. Estornar (ADMIN), `refund_requested_at`, selo "Estorno solicitado"
   - _Requisitos: COB-09.1–09.3_
 
 - [ ] 14. Enviar por e-mail (MailProvider + Mailpit em dev) e `sync` manual
   - _Requisitos: COB-10.1, COB-10.2, COB-07.2_
 
 - [ ] 15. Cancelar recorrência + E2E manual no sandbox dos três tipos (roteiro em `docs/testes/sandbox-cobrancas.md`)
+  - [x] Cancelar recorrência (COB-11.1). Os três tipos rodam ponta a ponta no Asaas simulado (ADR-016); falta só a rodada manual no sandbox.
   - _Requisitos: COB-11.1, todos (validação ponta a ponta)_

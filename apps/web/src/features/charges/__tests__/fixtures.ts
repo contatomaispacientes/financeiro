@@ -52,7 +52,7 @@ export const fee = service('6b1d2c3e-4f5a-4b6c-9d7e-0a1b2c3d4e5f', 'Taxa de ades
 export function chargeDetail(overrides: Partial<ChargeDetailDto> = {}): ChargeDetailDto {
   return {
     id: 'ch-1',
-    customer: { id: 'c-1', name: 'Maria Silva', document: '52998224725' },
+    customer: { id: 'c-1', name: 'Maria Silva', document: '52998224725', email: 'maria@example.com' },
     origin: 'MANUAL',
     type: 'SINGLE',
     status: 'PENDING',
@@ -76,6 +76,9 @@ export function chargeDetail(overrides: Partial<ChargeDetailDto> = {}): ChargeDe
     pixPayload: '00020126580014br.gov.bcb.pix0136pix-123',
     identificationField: null,
     lastError: null,
+    refundRequestedAt: null,
+    installments: [],
+    subscription: null,
     contractId: null,
     subscriptionId: null,
     items: [

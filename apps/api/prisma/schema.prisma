@@ -266,6 +266,7 @@ model Subscription {
   finePct             Decimal            @default(0) @map("fine_pct") @db.Decimal(5, 2)
   interestPct         Decimal            @default(0) @map("interest_pct") @db.Decimal(5, 2)
   externalReference   String             @unique @map("external_reference")
+  lastError           String?            @map("last_error") // falha ao criar no Asaas; sem asaas_subscription_id = ainda não enviada
   createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz
   updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz
   customer            Customer           @relation(fields: [customerId], references: [id])

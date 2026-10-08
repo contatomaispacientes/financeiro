@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path';
 import { crc32, deflateSync } from 'node:zlib';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { addDays, addMonthsClamped, fromCents, splitInstallments, todayInSaoPaulo, type Cycle } from '@financeiro/shared';
+import { addCycle, addMonthsClamped, fromCents, splitInstallments, todayInSaoPaulo } from '@financeiro/shared';
 import type { Env } from '../../config/env.schema';
 import type {
   AsaasClient,
@@ -42,9 +42,6 @@ export interface MockWebhookEvent {
 }
 export type MockSimulation = 'RECEIVE' | 'OVERDUE';
 
-const MONTHS: Partial<Record<Cycle, number>> = { MONTHLY: 1, BIMONTHLY: 2, QUARTERLY: 3, SEMIANNUALLY: 6, YEARLY: 12 };
-const DAYS: Partial<Record<Cycle, number>> = { WEEKLY: 7, BIWEEKLY: 14 };
-const nextCycle = (date: string, cycle: Cycle) => (MONTHS[cycle] ? addMonthsClamped(date, MONTHS[cycle]!) : addDays(date, DAYS[cycle]!));
 const shortId = () => randomUUID().replace(/-/g, '').slice(0, 12);
 const paidStatuses = ['RECEIVED', 'CONFIRMED', 'RECEIVED_IN_CASH'];
 
@@ -288,7 +285,7 @@ export class MockAsaasClient implements AsaasClient {
       installmentNumber: null,
       subscription: subscription.id,
     });
-    subscription.nextDueDate = nextCycle(subscription.nextDueDate, subscription.cycle);
+    subscription.nextDueDate = addCycle(subscription.nextDueDate, subscription.cycle);
     this.emit('PAYMENT_CREATED', payment);
   }
 

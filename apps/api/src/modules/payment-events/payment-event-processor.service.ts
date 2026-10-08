@@ -19,6 +19,7 @@ import {
   type AsaasWebhookPayment,
 } from './asaas-payment';
 import { refundValueUnknown, resourceNotYetKnown } from './payment-events.errors';
+import { importSubscriptionPayment, type ImportablePayment } from '../subscriptions/subscription-import';
 
 export type EventResult = 'APPLIED' | 'IMPORTED' | 'IGNORED' | 'IGNORED_TRANSITION' | 'UNKNOWN_RESOURCE';
 
@@ -56,8 +57,12 @@ export class PaymentEventProcessor {
     const payment = AsaasWebhookPaymentSchema.parse(body.payment);
     const mayBeCreating = !lastAttempt && Date.now() - evt.receivedAt.getTime() < CREATION_WINDOW_MS;
 
-    // Importação de cobrança de assinatura (`payment.subscription`) é a tarefa 7 (M3).
     const chargeId = await this.locate(payment);
+    // COB-04.3: cobrança nova de uma assinatura nossa entra já com o status atual do Asaas.
+    if (!chargeId && payment.subscription) {
+      const imported = await importSubscriptionPayment(this.prisma, toImportable(payment, payment.subscription));
+      if (imported) return this.finish(this.prisma, evt.id, imported.imported ? 'IMPORTED' : 'APPLIED');
+    }
     if (!chargeId) {
       if (mayBeCreating) throw resourceNotYetKnown();
       return this.finish(this.prisma, evt.id, 'UNKNOWN_RESOURCE');
@@ -126,6 +131,22 @@ export class PaymentEventProcessor {
     await db.webhookEvent.update({ where: { id }, data: { processedAt: new Date(), result, error: null } });
     return result;
   }
+}
+
+function toImportable(payment: AsaasWebhookPayment, subscription: string): ImportablePayment {
+  return {
+    id: payment.id,
+    subscription,
+    status: payment.status ?? 'PENDING',
+    billingType: payment.billingType && payment.billingType in BillingType ? (payment.billingType as BillingType) : 'UNDEFINED',
+    valueCents: toCents(payment.value ?? 0),
+    netValueCents: payment.netValue == null ? null : toCents(payment.netValue),
+    dueDate: (payment.dueDate ?? '').slice(0, 10),
+    paymentDate: payment.paymentDate ?? payment.clientPaymentDate ?? null,
+    invoiceUrl: payment.invoiceUrl ?? null,
+    bankSlipUrl: payment.bankSlipUrl ?? null,
+    deleted: Boolean((payment as { deleted?: unknown }).deleted),
+  };
 }
 
 function chargeChanges(

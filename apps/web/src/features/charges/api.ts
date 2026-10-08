@@ -1,14 +1,21 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
+  ChargeCancelInput,
   ChargeCreateRequest,
   ChargeCreateResponseDto,
   ChargeDetailDto,
+  ChargeListDto,
+  ChargeListQuery,
   ChargePreviewDto,
+  ChargeStatus,
   CustomerDetailDto,
   CustomerListItemDto,
   Paginated,
   PaymentInfoDto,
   ServiceListItemDto,
+  SubscriptionDetailDto,
+  SubscriptionListItemDto,
+  SubscriptionStatus,
 } from '@financeiro/shared';
 import { get, post } from '@/lib/api';
 import { customerKeys } from '@/features/customers/api';
@@ -108,5 +115,77 @@ export function useCustomerSearch(search: string, enabled: boolean) {
       }),
     enabled,
     placeholderData: keepPreviousData,
+  });
+}
+
+export const CHARGES_PAGE_SIZE = 20;
+
+export type ChargeFilters = Partial<Pick<ChargeListQuery, 'customerId' | 'type' | 'billingType' | 'dueFrom' | 'dueTo' | 'search'>> & {
+  status?: ChargeStatus[];
+  page: number;
+};
+
+/** COB-06 */
+export function useCharges(filters: ChargeFilters) {
+  return useQuery({
+    queryKey: [...chargeKeys.all, 'list', filters],
+    queryFn: () => get<ChargeListDto>('/charges', { ...filters, pageSize: CHARGES_PAGE_SIZE }),
+    placeholderData: keepPreviousData,
+  });
+}
+
+/** COB-08 e COB-09: o status final chega pelo webhook; recarrega já e de novo em seguida. */
+export function useChargeMutations() {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidate();
+  const after = (charges: ChargeDetailDto[]) => {
+    for (const c of charges) queryClient.setQueryData(chargeKeys.detail(c.id), c);
+    const refresh = () => invalidate(charges[0]?.customer.id, charges.map((c) => c.id));
+    setTimeout(() => void refresh(), 1500);
+    return refresh();
+  };
+  return {
+    cancel: useMutation({
+      mutationFn: ({ id, scope }: { id: string; scope: ChargeCancelInput['scope'] }) =>
+        post<ChargeDetailDto[]>(`/charges/${id}/cancel`, { scope }),
+      onSuccess: after,
+    }),
+    refund: useMutation({
+      mutationFn: ({ id, valueCents }: { id: string; valueCents?: number }) =>
+        post<ChargeDetailDto>(`/charges/${id}/refund`, valueCents === undefined ? {} : { valueCents }),
+      onSuccess: (c) => after([c]),
+    }),
+  };
+}
+
+export const subscriptionKeys = {
+  all: ['subscriptions'] as const,
+  detail: (id: string) => ['subscription', id] as const,
+};
+
+export function useSubscriptions(filters: { status?: SubscriptionStatus; page: number }) {
+  return useQuery({
+    queryKey: [...subscriptionKeys.all, filters],
+    queryFn: () => get<Paginated<SubscriptionListItemDto>>('/subscriptions', { ...filters, pageSize: CHARGES_PAGE_SIZE }),
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useSubscription(id: string) {
+  return useQuery({ queryKey: subscriptionKeys.detail(id), queryFn: () => get<SubscriptionDetailDto>(`/subscriptions/${id}`) });
+}
+
+export function useSubscriptionAction() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, action }: { id: string; action: 'cancel' | 'retry' }) => post<SubscriptionDetailDto>(`/subscriptions/${id}/${action}`),
+    onSuccess: (sub) => {
+      queryClient.setQueryData(subscriptionKeys.detail(sub.id), sub);
+      return Promise.all([
+        queryClient.invalidateQueries({ queryKey: subscriptionKeys.all }),
+        queryClient.invalidateQueries({ queryKey: chargeKeys.all }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard'] }),
+      ]);
+    },
   });
 }

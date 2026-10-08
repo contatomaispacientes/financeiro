@@ -77,7 +77,6 @@ describe('[COB-01][COB-02][COB-12] Nova cobrança', () => {
     expect(await screen.findByLabelText('Vencimento')).toHaveValue(addDays(today, 5));
     expect(screen.getByLabelText('Multa por atraso')).toHaveValue(2.5);
     expect(screen.getByLabelText('Juros ao mês')).toHaveValue(1);
-    expect(screen.getByRole('radio', { name: /Parcelada/ })).toBeDisabled();
 
     await pickCustomer();
     expect(screen.getByText('Será criado no Asaas ao gerar a cobrança.')).toBeInTheDocument();
@@ -92,6 +91,25 @@ describe('[COB-01][COB-02][COB-12] Nova cobrança', () => {
     await userEvent.type(screen.getByLabelText('Desconto'), '99999');
     expect(summary().getByText('O desconto não pode ser maior que o subtotal')).toBeInTheDocument();
     expect(generateButton()).toBeDisabled();
+  });
+
+  it('[COB-03.1][COB-04.1] parcelada lista as parcelas somando o total; recorrente pede o ciclo', async () => {
+    mockApi();
+    renderRoutes(routes, '/cobrancas/nova');
+    await pickCustomer();
+    await addFromCatalog('Consultoria');
+    await addFromCatalog('Consultoria');
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Parcelada' }));
+    const parcels = within(screen.getByRole('list', { name: 'Parcelas' })).getAllByRole('listitem');
+    expect(parcels).toHaveLength(3);
+    expect(parcels[0]).toHaveTextContent('R$ 100,00');
+    expect(summary().getByText('3× de R$ 100,00')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', { name: 'Recorrente' }));
+    expect(screen.getByLabelText('Ciclo')).toHaveValue('MONTHLY');
+    expect(summary().getByText('Mensal')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Criar recorrência no Asaas' })).toBeEnabled();
   });
 
   it('[COB-01.1][COB-05.3] gera a avulsa, envia o plano e mostra o resultado com os dados para pagamento', async () => {

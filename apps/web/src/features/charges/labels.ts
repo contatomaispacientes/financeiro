@@ -1,4 +1,4 @@
-import type { BillingType, ChargeDetailDto, ChargeEventDto, ChargeOrigin } from '@financeiro/shared';
+import type { BillingType, ChargeDetailDto, ChargeEventDto, ChargeListItemDto, ChargeOrigin, Cycle, SubscriptionStatus } from '@financeiro/shared';
 
 export const billingTypeLabels: Record<BillingType, string> = {
   PIX: 'Pix',
@@ -52,4 +52,27 @@ export function eventNote(e: ChargeEventDto): string | null {
   if (e.result === 'IGNORED_TRANSITION') return 'Ignorado: chegou fora de ordem';
   if (e.result === 'IGNORED') return 'Só registrado';
   return null;
+}
+
+export const cycleLabels: Record<Cycle, string> = {
+  WEEKLY: 'Semanal',
+  BIWEEKLY: 'Quinzenal',
+  MONTHLY: 'Mensal',
+  BIMONTHLY: 'Bimestral',
+  QUARTERLY: 'Trimestral',
+  SEMIANNUALLY: 'Semestral',
+  YEARLY: 'Anual',
+};
+
+export const subscriptionStatusLabels: Record<SubscriptionStatus, string> = {
+  ACTIVE: 'Ativa',
+  INACTIVE: 'Não enviada',
+  CANCELED: 'Cancelada',
+};
+
+/** "Parcela 2/3", "Mensal" ou "Avulsa" para listas. */
+export function chargeKindLabel(c: Pick<ChargeListItemDto, 'type' | 'installmentNumber' | 'installmentCount' | 'cycle'>) {
+  if (c.type === 'INSTALLMENT') return `Parcela ${c.installmentNumber}/${c.installmentCount}`;
+  if (c.type === 'RECURRING') return c.cycle ? cycleLabels[c.cycle] : 'Recorrente';
+  return 'Avulsa';
 }

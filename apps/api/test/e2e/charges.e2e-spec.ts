@@ -148,7 +148,7 @@ describe('Cobranças avulsas (integração)', () => {
     ['CHARGE_TOTAL_ZERO', { items: [{ description: 'Brinde', quantity: 1, unitPriceCents: 0 }], discountCents: 0 }],
     ['DUE_DATE_IN_PAST', { dueDate: { mode: 'FIXED_DATE' as const, date: addDays(todayInSaoPaulo(), -1) } }],
     ['CHARGE_BELOW_MINIMUM', { items: [{ description: 'Taxa', quantity: 1, unitPriceCents: 100 }], discountCents: 0 }],
-    ['CHARGE_TYPE_NOT_AVAILABLE', { type: 'INSTALLMENT' as const, installmentCount: 3 }],
+    ['END_DATE_BEFORE_FIRST_DUE', { type: 'RECURRING' as const, cycle: 'MONTHLY' as const, endDate: due }],
   ])('[COB-01.5] recusa %s com 422 sem criar nada', async (code, overrides) => {
     const c = await fx.customer({ asaasCustomerId: `cus_${randomUUID()}` });
     const res = await http().post('/api/v1/charges').set('Authorization', fin).send({ customerId: c.id, plan: plan(overrides) });

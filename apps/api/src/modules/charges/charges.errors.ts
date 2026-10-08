@@ -10,14 +10,6 @@ export const chargeNotFound = () =>
 export const customerArchived = () =>
   new DomainException('CUSTOMER_ARCHIVED', 'Cliente arquivado não recebe nova cobrança', HttpStatus.UNPROCESSABLE_ENTITY);
 
-/** M2 entrega só a avulsa (Changelog do design). */
-export const chargeTypeNotAvailable = () =>
-  new DomainException(
-    'CHARGE_TYPE_NOT_AVAILABLE',
-    'Parcelada e recorrente chegam na próxima versão',
-    HttpStatus.UNPROCESSABLE_ENTITY,
-  );
-
 /** COB-01.5: erros de `calculatePlan`. */
 export const planError = (error: { code: PlanErrorCode; message: string }) =>
   new DomainException(error.code, error.message, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -40,3 +32,27 @@ export const retryDueDateInPast = () =>
 /** COB-12.1: mesmo código e status do erro do Asaas, com os rascunhos para "Tentar de novo"/"Descartar". */
 export const asaasCreateFailed = (error: AsaasError, chargeIds: string[]) =>
   new DomainException(error.code, error.message, error.httpStatus, { chargeIds } satisfies ChargeCreateFailureDetails);
+
+/** COB-08.3 */
+export const chargeNotCancelable = () =>
+  new DomainException('CHARGE_NOT_CANCELABLE', 'Só cobrança pendente ou vencida pode ser cancelada', HttpStatus.CONFLICT);
+
+/** COB-09.1 */
+export const chargeNotRefundable = () =>
+  new DomainException('CHARGE_NOT_REFUNDABLE', 'Só cobrança paga pode ser estornada', HttpStatus.CONFLICT);
+
+/** COB-09.3 */
+export const refundExceedsValue = (balanceCents: number) =>
+  new DomainException('REFUND_EXCEEDS_VALUE', 'O valor passa do saldo que ainda pode ser estornado', HttpStatus.UNPROCESSABLE_ENTITY, {
+    balanceCents,
+  });
+
+export const subscriptionNotFound = () =>
+  new DomainException('NOT_FOUND', 'Recorrência não encontrada', HttpStatus.NOT_FOUND);
+
+/** COB-11 */
+export const subscriptionNotCancelable = () =>
+  new DomainException('SUBSCRIPTION_NOT_CANCELABLE', 'Esta recorrência já está encerrada', HttpStatus.CONFLICT);
+
+export const subscriptionAlreadySent = () =>
+  new DomainException('SUBSCRIPTION_ALREADY_SENT', 'Esta recorrência já foi criada no Asaas', HttpStatus.CONFLICT);

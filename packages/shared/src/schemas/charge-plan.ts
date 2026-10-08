@@ -1,6 +1,7 @@
 import { z } from '../zod.js';
 import { BillingType, ChargeType, Cycle } from '../enums.js';
 import type { ChargeOrigin, ChargeStatus } from '../enums.js';
+import type { ChargeListItemDto, SubscriptionListItemDto } from './charges.js';
 
 const IsoDateSchema = z.iso.date({ error: 'Data inválida' });
 
@@ -128,7 +129,7 @@ export interface ChargeEventDto {
 /** `GET /charges/:id` (COB-07.1). Datas puras em "YYYY-MM-DD"; instantes em ISO. */
 export interface ChargeDetailDto {
   id: string;
-  customer: { id: string; name: string; document: string };
+  customer: { id: string; name: string; document: string; email: string | null };
   origin: ChargeOrigin;
   type: ChargeType;
   status: ChargeStatus;
@@ -153,8 +154,13 @@ export interface ChargeDetailDto {
   identificationField: string | null;
   /** Mensagem da última falha com o Asaas (cobrança em DRAFT: oferecer "Tentar de novo"/"Descartar"). */
   lastError: string | null;
+  /** Estorno pedido ao Asaas e ainda não confirmado pelo webhook mostra "Estorno solicitado" (COB-09.2). */
+  refundRequestedAt: string | null;
   contractId: string | null;
   subscriptionId: string | null;
+  /** Parcelamento: todas as parcelas do grupo, em ordem. */
+  installments: ChargeListItemDto[];
+  subscription: SubscriptionListItemDto | null;
   items: ChargeItemDto[];
   events: ChargeEventDto[];
   createdAt: string;
@@ -164,6 +170,8 @@ export interface ChargeDetailDto {
 /** `POST /charges` (201). Avulsa: 1 cobrança. */
 export interface ChargeCreateResponseDto {
   charges: ChargeDetailDto[];
+  /** Recorrente: a assinatura criada (as cobranças são as já geradas pelo Asaas). */
+  subscription?: SubscriptionListItemDto;
 }
 
 /**
@@ -172,6 +180,7 @@ export interface ChargeCreateResponseDto {
  */
 export interface ChargeCreateFailureDetails {
   chargeIds: string[];
+  subscriptionId?: string;
 }
 
 /** `GET /charges/:id/payment-info` (COB-05). */

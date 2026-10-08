@@ -13,7 +13,8 @@ import { formatBRL, formatDate, formatDateTime } from '@/lib/format';
 import { ApiError } from '@/lib/http';
 import { displayDocument } from '@/features/customers/CustomersPage';
 import { useCharge, useChargeAction } from './api';
-import { billingTypeLabels, chargeTypeLabel, eventLabel, eventNote, originLabels } from './labels';
+import { billingTypeLabels, chargeTypeLabel, cycleLabels, eventLabel, eventNote, originLabels } from './labels';
+import { ChargeActions } from './ChargeActions';
 import { MockSimulator } from './MockSimulator';
 import { PaymentData } from './PaymentData';
 
@@ -83,17 +84,25 @@ export function ChargeDetailPage() {
         Cobranças
       </Link>
 
-      <header className="mb-6 flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-3">
-          <h1 className="tabular text-2xl font-semibold tracking-tight">{formatBRL(c.valueCents)}</h1>
-          <StatusBadge kind="charge" status={c.status} />
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="tabular text-2xl font-semibold tracking-tight">{formatBRL(c.valueCents)}</h1>
+            <StatusBadge kind="charge" status={c.status} />
+            {c.refundRequestedAt && (c.status === 'PAID' || c.status === 'CONFIRMED') && (
+              <span className="rounded-full bg-violet-100 px-2 py-0.5 text-xs font-medium text-violet-900 ring-1 ring-violet-300 ring-inset">
+                Estorno solicitado
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            <Link to={`/clientes/${c.customer.id}`} className="font-medium text-foreground hover:underline">
+              {c.customer.name}
+            </Link>{' '}
+            · {chargeTypeLabel(c)} · vence em <span className="tabular">{formatDate(c.dueDate)}</span>
+          </p>
         </div>
-        <p className="text-sm text-muted-foreground">
-          <Link to={`/clientes/${c.customer.id}`} className="font-medium text-foreground hover:underline">
-            {c.customer.name}
-          </Link>{' '}
-          · {chargeTypeLabel(c)} · vence em <span className="tabular">{formatDate(c.dueDate)}</span>
-        </p>
+        <ChargeActions charge={c} />
       </header>
 
       {c.status === 'DRAFT' && (
@@ -129,6 +138,14 @@ export function ChargeDetailPage() {
               </Item>
               <Item label="Tipo">
                 {chargeTypeLabel(c)} · origem {originLabels[c.origin].toLowerCase()}
+                {c.subscription && (
+                  <>
+                    {' · '}
+                    <Link to={`/assinaturas/${c.subscription.id}`} className="hover:underline">
+                      recorrência {cycleLabels[c.subscription.cycle].toLowerCase()}
+                    </Link>
+                  </>
+                )}
               </Item>
               <Item label="Forma de pagamento">{billingTypeLabels[c.billingType]}</Item>
               <Item label="Vencimento">
@@ -153,6 +170,35 @@ export function ChargeDetailPage() {
               <Item label="ID Asaas">{c.asaasPaymentId ? <span className="tabular">{c.asaasPaymentId}</span> : missing}</Item>
             </dl>
           </Card>
+
+          {c.installments.length > 0 && (
+            <Card title={`Parcelamento em ${c.installments.length}×`}>
+              <div className="-mx-4 -my-3 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="pl-4">Parcela</TableHead>
+                      <TableHead>Vencimento</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="pr-4">Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {c.installments.map((p) => (
+                      <TableRow key={p.id} aria-current={p.id === c.id ? 'true' : undefined} className={p.id === c.id ? 'bg-muted/50' : undefined}>
+                        <TableCell className="tabular pl-4">
+                          {p.id === c.id ? `${p.installmentNumber}ª (esta)` : <Link to={`/cobrancas/${p.id}`} className="hover:underline">{p.installmentNumber}ª</Link>}
+                        </TableCell>
+                        <TableCell className="tabular">{formatDate(p.dueDate)}</TableCell>
+                        <TableCell className="tabular text-right">{formatBRL(p.valueCents)}</TableCell>
+                        <TableCell className="pr-4"><StatusBadge kind="charge" status={p.status} /></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
 
           <Card title="Itens">
             <div className="-mx-4 -my-3 overflow-x-auto">

@@ -1,6 +1,17 @@
-import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ChargeCreateRequestSchema, Permission, type ChargeCreateRequest, type Role } from '@financeiro/shared';
+import {
+  ChargeCancelSchema,
+  ChargeCreateRequestSchema,
+  ChargeListQuerySchema,
+  ChargeRefundSchema,
+  Permission,
+  type ChargeCancelInput,
+  type ChargeCreateRequest,
+  type ChargeListQuery,
+  type ChargeRefundInput,
+  type Role,
+} from '@financeiro/shared';
 import { Roles } from '../../common/decorators/roles.decorator';
 import { CurrentUser, type JwtPayload } from '../../common/decorators/current-user.decorator';
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe';
@@ -28,6 +39,37 @@ export class ChargesController {
     @CurrentUser() actor: JwtPayload,
   ) {
     return this.charges.create(body, actor);
+  }
+
+  @Get()
+  @Roles(...Permission.VIEW_REPORTS)
+  @ApiOperation({ summary: 'Lista de cobranças com filtros, contagem por status e soma (COB-06)' })
+  list(@Query(new ZodValidationPipe(ChargeListQuerySchema)) query: ChargeListQuery) {
+    return this.charges.list(query);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(200)
+  @Roles(...Permission.MANAGE_CHARGES)
+  @ApiOperation({ summary: 'Cancelar cobrança ou parcelas em aberto (COB-08)' })
+  cancel(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(ChargeCancelSchema)) body: ChargeCancelInput,
+    @CurrentUser() actor: JwtPayload,
+  ) {
+    return this.charges.cancel(id, body, actor);
+  }
+
+  @Post(':id/refund')
+  @HttpCode(200)
+  @Roles(...Permission.REFUND_CHARGE)
+  @ApiOperation({ summary: 'Estornar cobrança paga, total ou parcial (COB-09)' })
+  refund(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body(new ZodValidationPipe(ChargeRefundSchema)) body: ChargeRefundInput,
+    @CurrentUser() actor: JwtPayload,
+  ) {
+    return this.charges.refund(id, body, actor);
   }
 
   @Get(':id')

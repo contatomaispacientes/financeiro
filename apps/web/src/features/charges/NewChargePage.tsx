@@ -10,6 +10,8 @@ import {
   todayInSaoPaulo,
   type BillingType,
   type ChargeCreateFailureDetails,
+  type ChargeType,
+  type Cycle,
   type ChargeCreateRequest,
   type ChargeDetailDto,
   type ChargePlan,
@@ -40,7 +42,7 @@ import {
 } from './api';
 import { ChargeCreated } from './ChargeCreated';
 import { CustomerPicker, type PickedCustomer } from './CustomerPicker';
-import { billingTypeLabels } from './labels';
+import { billingTypeLabels, cycleLabels } from './labels';
 import { useDebouncedValue } from './use-debounced-value';
 
 interface ItemValues {
@@ -52,6 +54,10 @@ interface ItemValues {
 
 interface FormValues {
   items: ItemValues[];
+  type: ChargeType;
+  installmentCount: number;
+  cycle: Cycle;
+  endDate: string | null;
   billingType: BillingType;
   dueDate: string | null;
   discountCents: number | null;
@@ -79,7 +85,9 @@ function toPlan(v: FormValues): ChargePlanInput {
       quantity: i.quantity,
       unitPriceCents: i.unitPriceCents ?? 0,
     })),
-    type: 'SINGLE',
+    type: v.type,
+    ...(v.type === 'INSTALLMENT' && { installmentCount: v.installmentCount }),
+    ...(v.type === 'RECURRING' && { cycle: v.cycle, ...(v.endDate && { endDate: v.endDate }) }),
     billingType: v.billingType,
     dueDate: { mode: 'FIXED_DATE', date: v.dueDate ?? '' },
     discountCents: v.discountCents ?? 0,
@@ -103,6 +111,7 @@ function describeIssue(issue: { path: PropertyKey[]; code: string; message: stri
     return { field: `items.${index}.${String(key)}`, message, summary: `Item ${index + 1}: ${message}` };
   }
   if (head === 'dueDate') return { field: 'dueDate', message: 'Informe o vencimento', summary: 'Informe o vencimento' };
+  if (head === 'installmentCount') return { field: 'installmentCount', message: 'De 2 a 12 parcelas', summary: 'Parcelas: de 2 a 12' };
   const message = notANumber ? 'Informe um valor de 0 a 10' : issue.message;
   return { field: String(head), message, summary: message };
 }
@@ -202,6 +211,10 @@ function ChargeForm({
   const form = useForm<FormValues>({
     defaultValues: {
       items: [],
+      type: 'SINGLE',
+      installmentCount: 3,
+      cycle: 'MONTHLY',
+      endDate: null,
       billingType: 'PIX',
       dueDate: addDays(today, settings.defaultDueDays),
       discountCents: null,
@@ -227,6 +240,7 @@ function ChargeForm({
   for (const p of problems) if (!fieldErrors.has(p.field)) fieldErrors.set(p.field, p.message);
   if (!calc.ok && calc.error.code === 'DUE_DATE_IN_PAST' && values.dueDate) fieldErrors.set('dueDate', calc.error.message);
   if (!calc.ok && calc.error.code === 'DISCOUNT_EXCEEDS_SUBTOTAL') fieldErrors.set('discountCents', calc.error.message);
+  if (!calc.ok && calc.error.code === 'END_DATE_BEFORE_FIRST_DUE') fieldErrors.set('endDate', calc.error.message);
 
   const subtotalCents = values.items.reduce((sum, i) => sum + safeNumber(i.quantity) * (i.unitPriceCents ?? 0), 0);
   const discountCents = values.discountCents ?? 0;
@@ -265,12 +279,15 @@ function ChargeForm({
     try {
       const { charges } = await create.mutateAsync(request);
       if (charges[0]) onCreated(charges[0]);
+      else toast.success('Recorrência criada. As cobranças aparecem conforme o Asaas gerar.');
     } catch (error) {
       // COB-12.1: o Asaas falhou e o rascunho ficou em DRAFT; o usuário decide tentar de novo ou descartar.
-      const chargeId =
-        error instanceof ApiError ? (error.details as Partial<ChargeCreateFailureDetails> | undefined)?.chargeIds?.[0] : undefined;
+      const details = error instanceof ApiError ? (error.details as Partial<ChargeCreateFailureDetails> | undefined) : undefined;
+      const chargeId = details?.chargeIds?.[0];
       if (error instanceof ApiError && chargeId) setDraft({ chargeId, message: error.message });
-      else setSubmitError(errorMessage(error));
+      else if (details?.subscriptionId) {
+        setSubmitError(`${errorMessage(error)} A recorrência ficou salva em Recorrências: dá para tentar de novo por lá, sem duplicar.`);
+      } else setSubmitError(errorMessage(error));
     }
   }
 
@@ -435,10 +452,72 @@ function ChargeForm({
         <Section step={3} title="Condições">
           <div className="space-y-5">
             <Segmented label="Tipo">
-              <SegmentOption name="charge-type" value="SINGLE" label="Avulsa" defaultChecked />
-              <SegmentOption name="charge-type" value="INSTALLMENT" label="Parcelada" note="em breve" disabled />
-              <SegmentOption name="charge-type" value="RECURRING" label="Recorrente" note="em breve" disabled />
+              <SegmentOption value="SINGLE" label="Avulsa" {...form.register('type')} />
+              <SegmentOption value="INSTALLMENT" label="Parcelada" {...form.register('type')} />
+              <SegmentOption value="RECURRING" label="Recorrente" {...form.register('type')} />
             </Segmented>
+
+            {values.type === 'INSTALLMENT' && (
+              <div className="grid gap-4 sm:grid-cols-[10rem_1fr]">
+                <FormField id="charge-installments" label="Parcelas" error={fieldError('installmentCount')} description="De 2 a 12, mensais.">
+                  <Input
+                    {...fieldAria('charge-installments', fieldError('installmentCount'))}
+                    type="number"
+                    inputMode="numeric"
+                    min={2}
+                    max={12}
+                    step={1}
+                    className="tabular"
+                    {...form.register('installmentCount', { valueAsNumber: true })}
+                  />
+                </FormField>
+                {calc.ok && (
+                  <ol aria-label="Parcelas" className="tabular grid content-start gap-x-4 text-sm sm:grid-cols-2">
+                    {calc.value.installments.map((p) => (
+                      <li key={p.number} className="flex justify-between gap-3 border-b py-1">
+                        <span className="text-muted-foreground">
+                          {p.number}ª · {formatDate(p.dueDate)}
+                        </span>
+                        <span>{formatBRL(p.valueCents)}</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </div>
+            )}
+
+            {values.type === 'RECURRING' && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField id="charge-cycle" label="Ciclo">
+                  <select
+                    id="charge-cycle"
+                    className="h-9 w-full rounded-md border bg-background px-3 text-sm shadow-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    {...form.register('cycle')}
+                  >
+                    {Object.entries(cycleLabels).map(([value, label]) => (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+                <FormField id="charge-end-date" label="Data final (opcional)" error={fieldError('endDate')} description="Sem data final, segue até ser cancelada.">
+                  <Controller
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <DatePicker
+                        {...fieldAria('charge-end-date', fieldError('endDate'))}
+                        min={values.dueDate ?? today}
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                      />
+                    )}
+                  />
+                </FormField>
+              </div>
+            )}
 
             <Segmented label="Forma de pagamento" description={billingHelp[values.billingType]} columns="grid-cols-2 sm:grid-cols-4">
               {BILLING_TYPES.map((type) => (
@@ -529,7 +608,19 @@ function ChargeForm({
               <dt className="font-medium">Total</dt>
               <dd className="tabular text-2xl font-semibold">{formatBRL(totals.totalCents)}</dd>
             </div>
-            <SummaryRow label="Vencimento">{values.dueDate ? formatDate(values.dueDate) : '—'}</SummaryRow>
+            {values.type === 'INSTALLMENT' && calc.ok && (
+              <SummaryRow label="Parcelas">
+                {calc.value.installments.length}× de {formatBRL(calc.value.installments[0]!.valueCents)}
+              </SummaryRow>
+            )}
+            {values.type === 'RECURRING' && (
+              <SummaryRow label="Repete">
+                <span className="font-sans">{cycleLabels[values.cycle]}</span>
+              </SummaryRow>
+            )}
+            <SummaryRow label={values.type === 'SINGLE' ? 'Vencimento' : '1º vencimento'}>
+              {values.dueDate ? formatDate(values.dueDate) : '—'}
+            </SummaryRow>
             <SummaryRow label="Forma">
               <span className="font-sans">{billingTypeLabels[values.billingType]}</span>
             </SummaryRow>
@@ -561,7 +652,7 @@ function ChargeForm({
             <>
               <Button type="button" size="lg" className="mt-4 w-full" disabled={!request || create.isPending} onClick={generate}>
                 {create.isPending && <LoaderCircle aria-hidden className="animate-spin" />}
-                {create.isPending ? 'Gerando no Asaas…' : 'Gerar cobrança no Asaas'}
+                {create.isPending ? 'Gerando no Asaas…' : values.type === 'RECURRING' ? 'Criar recorrência no Asaas' : 'Gerar cobrança no Asaas'}
               </Button>
               {submitError && (
                 <p role="alert" className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">

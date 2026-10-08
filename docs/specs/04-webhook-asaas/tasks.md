@@ -17,7 +17,7 @@
 - [x] 4. Sweeper de eventos não enfileirados (a cada 10 min)
   - _Requisitos: WHK-02.5_
 
-- [ ] 5. Eventos no detalhe da cobrança + timeline no front
+- [x] 5. Eventos no detalhe da cobrança + timeline no front
   - _Requisitos: WHK-03.4_
 
 - [x] 6. Teste ponta a ponta no sandbox com túnel (cloudflared/ngrok)
@@ -25,7 +25,7 @@
   - Documento escrito; a execução no sandbox (e a troca das fixtures pelos payloads reais) fica com o usuário.
   - _Requisitos: WHK-01, WHK-02_
 
-- [ ] 7. Importação de cobranças de assinatura e atualização de `next_due_date`
+- [x] 7. Importação de cobranças de assinatura e atualização de `next_due_date`
   - _Requisitos: WHK-02.2 (importação), WHK-02.6_
 
 - [x] 8. Log de eventos (API + tela), reprocessar, card de saúde

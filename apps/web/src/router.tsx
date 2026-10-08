@@ -12,6 +12,8 @@ import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
 import { NewChargePage } from '@/features/charges/NewChargePage';
 import { ChargeDetailPage } from '@/features/charges/ChargeDetailPage';
+import { ChargesPage } from '@/features/charges/ChargesPage';
+import { SubscriptionDetailPage, SubscriptionsPage } from '@/features/charges/SubscriptionsPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { DashboardPage } from '@/features/reports/DashboardPage';
 import { CashflowPage } from '@/features/reports/CashflowPage';
@@ -36,8 +38,9 @@ export const routes: RouteObject[] = [
             ),
           },
           { path: 'cobrancas/:id', element: <ChargeDetailPage /> },
-          { path: 'cobrancas', element: <PlaceholderPage title="Cobranças" spec="03" /> },
-          { path: 'assinaturas', element: <PlaceholderPage title="Recorrências" spec="03" /> },
+          { path: 'cobrancas', element: <ChargesPage /> },
+          { path: 'assinaturas', element: <SubscriptionsPage /> },
+          { path: 'assinaturas/:id', element: <SubscriptionDetailPage /> },
           { path: 'contratos', element: <PlaceholderPage title="Contratos" spec="07" /> },
           { path: 'clientes', element: <CustomersPage /> },
           { path: 'clientes/:id', element: <CustomerDetailPage /> },

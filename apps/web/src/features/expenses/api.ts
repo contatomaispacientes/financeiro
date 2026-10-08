@@ -61,6 +61,15 @@ export function useExpenseMutations() {
     }),
     unpay: useMutation({ mutationFn: (id: string) => post<ExpenseDto>(`/expenses/${id}/unpay`), ...opts }),
     cancel: useMutation({ mutationFn: (id: string) => post<ExpenseDto>(`/expenses/${id}/cancel`), ...opts }),
+    attach: useMutation({
+      mutationFn: ({ id, file }: { id: string; file: File }) => {
+        const form = new FormData();
+        form.append('file', file);
+        return post<ExpenseDto>(`/expenses/${id}/attachment`, form);
+      },
+      ...opts,
+    }),
+    detach: useMutation({ mutationFn: (id: string) => api<ExpenseDto>(`/expenses/${id}/attachment`, { method: 'DELETE' }), ...opts }),
     createRecurrence: useMutation({
       mutationFn: (input: RecurrenceCreateInput) => post<RecurrenceDto>('/expense-recurrences', input),
       ...opts,

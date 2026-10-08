@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { toast } from 'sonner';
-import { MoreHorizontal, Plus, Repeat, Search } from 'lucide-react';
+import { MoreHorizontal, Paperclip, Plus, Repeat, Search } from 'lucide-react';
 import { can, formatBRL, paymentMethodLabels, type ExpenseDto, type ExpenseState } from '@financeiro/shared';
 import { PageHeader } from '@/components/page-header';
 import { PaginationBar } from '@/components/pagination-bar';
@@ -20,6 +20,7 @@ import { Switch } from '@/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useSession } from '@/lib/auth';
+import { get } from '@/lib/api';
 import { errorMessage } from '@/lib/form-errors';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -54,7 +55,31 @@ function ExpensesTab({ canEdit }: { canEdit: boolean }) {
   const [term, setTerm] = useState(search);
   const expenses = useExpenses({ state, categoryId, search: search || undefined, page });
   const categories = useCategories();
-  const { unpay, cancel } = useExpenseMutations();
+  const { unpay, cancel, attach, detach } = useExpenseMutations();
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [attachTo, setAttachTo] = useState<string | null>(null);
+
+  function pickFile(id: string) {
+    setAttachTo(id);
+    fileInput.current?.click();
+  }
+
+  async function onFile(file: File | undefined) {
+    if (!file || !attachTo) return;
+    if (file.size > 5 * 1024 * 1024) return void toast.error('O anexo pode ter no máximo 5 MB.');
+    await run(attach.mutateAsync({ id: attachTo, file }), 'Anexo salvo.');
+    if (fileInput.current) fileInput.current.value = '';
+  }
+
+  /** DSP-NF1: link assinado de poucos minutos, aberto em outra aba. */
+  async function openAttachment(id: string) {
+    try {
+      const { url } = await get<{ url: string }>(`/expenses/${id}/attachment`);
+      window.open(url, '_blank', 'noopener');
+    } catch (error) {
+      toast.error(errorMessage(error));
+    }
+  }
   const [editing, setEditing] = useState<ExpenseDto | 'new' | null>(null);
   const [paying, setPaying] = useState<ExpenseDto | null>(null);
 
@@ -126,6 +151,16 @@ function ExpensesTab({ canEdit }: { canEdit: boolean }) {
         )}
       </div>
 
+      <input
+        ref={fileInput}
+        type="file"
+        accept="application/pdf,image/png,image/jpeg,image/webp"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden
+        onChange={(e) => void onFile(e.target.files?.[0])}
+      />
+
       {expenses.isPending ? (
         <TableSkeleton />
       ) : expenses.isError ? (
@@ -154,6 +189,11 @@ function ExpensesTab({ canEdit }: { canEdit: boolean }) {
                       <p className="font-medium">
                         {e.description}
                         {e.recurrenceId && <Repeat aria-label="Recorrente" className="ml-1.5 inline size-3.5 text-muted-foreground" />}
+                        {e.hasAttachment && (
+                          <button type="button" onClick={() => void openAttachment(e.id)} aria-label={`Ver anexo de ${e.description}`} className="ml-1.5 inline-flex align-middle text-muted-foreground hover:text-foreground">
+                            <Paperclip aria-hidden className="size-3.5" />
+                          </button>
+                        )}
                       </p>
                       {e.supplier && <p className="text-xs text-muted-foreground">{e.supplier}</p>}
                     </TableCell>
@@ -177,6 +217,10 @@ function ExpensesTab({ canEdit }: { canEdit: boolean }) {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem onSelect={() => setEditing(e)}>Editar</DropdownMenuItem>
+                              <DropdownMenuItem onSelect={() => pickFile(e.id)}>{e.hasAttachment ? 'Trocar anexo' : 'Anexar comprovante'}</DropdownMenuItem>
+                              {e.hasAttachment && (
+                                <DropdownMenuItem onSelect={() => run(detach.mutateAsync(e.id), 'Anexo removido.')}>Remover anexo</DropdownMenuItem>
+                              )}
                               {e.status === 'PAID' && (
                                 <DropdownMenuItem onSelect={() => run(unpay.mutateAsync(e.id), 'Pagamento desfeito.')}>Desfazer pagamento</DropdownMenuItem>
                               )}

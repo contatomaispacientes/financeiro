@@ -1,4 +1,18 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   CategorySchema,
@@ -74,6 +88,32 @@ export class ExpensesController {
   @Roles(...Permission.MANAGE_RECORDS)
   cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtPayload) {
     return this.expenses.cancel(id, actor);
+  }
+
+  /** DSP-01.1: multipart `file`, PDF ou imagem até 5 MB (substitui o anterior). */
+  @Post(':id/attachment')
+  @HttpCode(200)
+  @Roles(...Permission.MANAGE_RECORDS)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 10 * 1024 * 1024, files: 1 } }))
+  attach(
+    @Param('id', ParseUUIDPipe) id: string,
+    @UploadedFile() file: { buffer: Buffer } | undefined,
+    @CurrentUser() actor: JwtPayload,
+  ) {
+    return this.expenses.attach(id, file?.buffer ?? Buffer.alloc(0), actor);
+  }
+
+  /** DSP-NF1: `{ url }` assinado, válido por 5 minutos. */
+  @Get(':id/attachment')
+  @Roles(...Permission.VIEW_REPORTS)
+  attachmentUrl(@Param('id', ParseUUIDPipe) id: string) {
+    return this.expenses.attachmentUrl(id);
+  }
+
+  @Delete(':id/attachment')
+  @Roles(...Permission.MANAGE_RECORDS)
+  detach(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtPayload) {
+    return this.expenses.detach(id, actor);
   }
 }
 

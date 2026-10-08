@@ -18,6 +18,7 @@ import { ChargesModule } from './modules/charges/charges.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PaymentEventsModule } from './modules/payment-events/payment-events.module';
 import { AsaasMockModule } from './modules/asaas-mock/asaas-mock.module';
+import { StorageModule } from './integrations/storage/storage.module';
 
 const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 
@@ -62,6 +63,7 @@ const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     }),
     PrismaModule,
     QueuesModule,
+    StorageModule,
     AuditModule,
     AuthModule,
     UsersModule,

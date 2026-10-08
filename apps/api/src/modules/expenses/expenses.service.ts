@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable } from '@nestjs/common';
 import {
   clampDay,
@@ -21,11 +22,15 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { Prisma } from '../../generated/prisma/client.js';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { AuditService } from '../audit/audit.service';
+import { detectFileType, StorageService } from '../../integrations/storage/storage.service';
 import {
   categoryDuplicate,
   categoryInactive,
   categoryInUse,
   categoryNotFound,
+  attachmentMissing,
+  attachmentTooLarge,
+  attachmentType,
   expenseInvalidState,
   expenseNotEditable,
   expenseNotFound,
@@ -33,6 +38,7 @@ import {
 } from './expenses.errors';
 
 type Tx = Prisma.TransactionClient;
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
 type ExpenseRow = Prisma.ExpenseGetPayload<{ include: { category: true } }>;
 type RecurrenceRow = Prisma.ExpenseRecurrenceGetPayload<{ include: { category: true } }>;
 
@@ -59,6 +65,7 @@ function toExpenseDto(e: ExpenseRow, today: string): ExpenseDto {
     paymentMethod: (e.paymentMethod as PaymentMethod | null) ?? null,
     recurrenceId: e.recurrenceId,
     notes: e.notes,
+    hasAttachment: e.attachmentKey !== null,
     createdAt: e.createdAt.toISOString(),
   };
 }
@@ -97,6 +104,7 @@ export class ExpensesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   // ───────── Despesas ─────────
@@ -285,6 +293,47 @@ export class ExpensesService {
       );
       return toExpenseDto(row, todayInSaoPaulo());
     });
+  }
+
+  // ───────── Anexo (DSP-01.1, DSP-01.2: vale também para despesa paga) ─────────
+
+  async attach(id: string, data: Buffer, actor: JwtPayload): Promise<ExpenseDto> {
+    if (data.length > MAX_ATTACHMENT_BYTES) throw attachmentTooLarge();
+    const ext = detectFileType(data);
+    if (!ext) throw attachmentType();
+    const current = await this.prisma.expense.findUnique({ where: { id } });
+    if (!current) throw expenseNotFound();
+
+    const key = `expenses/${id}/${randomUUID()}${ext}`;
+    await this.storage.put(key, data);
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.expense.update({ where: { id }, data: { attachmentKey: key }, include: { category: true } });
+      await this.audit.record({ userId: actor.sub, action: 'expense.attach', entity: 'expense', entityId: id, data: { bytes: data.length } }, tx);
+      return updated;
+    });
+    if (current.attachmentKey) await this.storage.remove(current.attachmentKey);
+    return toExpenseDto(row, todayInSaoPaulo());
+  }
+
+  async detach(id: string, actor: JwtPayload): Promise<ExpenseDto> {
+    const current = await this.prisma.expense.findUnique({ where: { id } });
+    if (!current) throw expenseNotFound();
+    if (!current.attachmentKey) throw attachmentMissing();
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.expense.update({ where: { id }, data: { attachmentKey: null }, include: { category: true } });
+      await this.audit.record({ userId: actor.sub, action: 'expense.detach', entity: 'expense', entityId: id }, tx);
+      return updated;
+    });
+    await this.storage.remove(current.attachmentKey);
+    return toExpenseDto(row, todayInSaoPaulo());
+  }
+
+  /** DSP-NF1: link assinado de curta duração. */
+  async attachmentUrl(id: string): Promise<{ url: string }> {
+    const current = await this.prisma.expense.findUnique({ where: { id }, select: { attachmentKey: true } });
+    if (!current) throw expenseNotFound();
+    if (!current.attachmentKey) throw attachmentMissing();
+    return { url: this.storage.signedPath(current.attachmentKey) };
   }
 
   // ───────── Recorrências ─────────

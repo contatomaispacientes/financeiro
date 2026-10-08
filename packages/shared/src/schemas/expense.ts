@@ -115,6 +115,8 @@ export interface ExpenseDto {
   paymentMethod: PaymentMethod | null;
   recurrenceId: string | null;
   notes: string | null;
+  /** Comprovante/boleto anexado (DSP-01.1); baixe por `GET /expenses/:id/attachment`. */
+  hasAttachment: boolean;
   createdAt: string;
 }
 

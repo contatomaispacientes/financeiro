@@ -1,3 +1,6 @@
+import { mkdtempSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { addDays, addMonthsClamped, clampDay, currentMonthInSaoPaulo, todayInSaoPaulo } from '@financeiro/shared';
@@ -17,7 +20,7 @@ describe('Despesas (integração)', () => {
   const post = (path: string, body: object = {}, auth = fin) => http().post(`/api/v1${path}`).set('Authorization', auth).send(body);
 
   beforeAll(async () => {
-    app = await createTestApp();
+    app = await createTestApp({ STORAGE_LOCAL_DIR: mkdtempSync(join(tmpdir(), 'despesas-')) });
     prisma = app.get(PrismaService);
     fin = (await loginAs(app, 'FINANCEIRO')).auth;
     admin = (await loginAs(app, 'ADMIN')).auth;
@@ -110,5 +113,36 @@ describe('Despesas (integração)', () => {
     const del = await http().delete(`/api/v1/expense-categories/${categoryId}`).set('Authorization', admin);
     expect(del.body.error.code).toBe('CATEGORY_IN_USE');
     expect((await http().delete(`/api/v1/expense-categories/${created.body.id}`).set('Authorization', admin)).status).toBe(204);
+  });
+
+  it('[DSP-01.1][DSP-NF1] anexa PDF (também em despesa paga), recusa outro tipo e baixa só por link assinado', async () => {
+    const { id } = (await expense()).body;
+    await post(`/expenses/${id}/pay`, { paymentMethod: 'PIX' });
+    const upload = (content: Buffer, name: string) =>
+      http().post(`/api/v1/expenses/${id}/attachment`).set('Authorization', fin).attach('file', content, name);
+
+    const wrong = await upload(Buffer.from('só texto'), 'nota.pdf');
+    expect(wrong.body.error.code).toBe('ATTACHMENT_TYPE');
+    const tooBig = await upload(Buffer.concat([Buffer.from('%PDF-1.4\n'), Buffer.alloc(5 * 1024 * 1024)]), 'grande.pdf');
+    expect(tooBig.body.error.code).toBe('ATTACHMENT_TOO_LARGE');
+
+    const pdf = Buffer.from('%PDF-1.4\n%comprovante\n');
+    const ok = await upload(pdf, 'comprovante.pdf');
+    expect(ok.status).toBe(200);
+    expect(ok.body.hasAttachment).toBe(true);
+
+    const { url } = (await http().get(`/api/v1/expenses/${id}/attachment`).set('Authorization', leitura)).body;
+    const file = await http().get(url).buffer(true).parse((res, cb) => {
+      const chunks: Buffer[] = [];
+      res.on('data', (c: Buffer) => chunks.push(c));
+      res.on('end', () => cb(null, Buffer.concat(chunks)));
+    });
+    expect(file.headers['content-type']).toBe('application/pdf');
+    expect(Buffer.compare(file.body as Buffer, pdf)).toBe(0);
+    expect((await http().get(`${url}x`)).status).toBe(404);
+
+    const removed = await http().delete(`/api/v1/expenses/${id}/attachment`).set('Authorization', fin);
+    expect(removed.body.hasAttachment).toBe(false);
+    expect((await http().get(url)).status).toBe(404);
   });
 });

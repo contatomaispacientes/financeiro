@@ -28,3 +28,11 @@ export const categoryInUse = () =>
 
 export const categoryDuplicate = () =>
   new DomainException('CATEGORY_DUPLICATE', 'Já existe uma categoria com este nome', HttpStatus.CONFLICT);
+
+/** DSP-01.1 */
+export const attachmentTooLarge = () =>
+  new DomainException('ATTACHMENT_TOO_LARGE', 'O anexo pode ter no máximo 5 MB', HttpStatus.UNPROCESSABLE_ENTITY);
+export const attachmentType = () =>
+  new DomainException('ATTACHMENT_TYPE', 'Anexe um PDF ou uma imagem (PNG, JPG ou WEBP)', HttpStatus.UNPROCESSABLE_ENTITY);
+export const attachmentMissing = () =>
+  new DomainException('NOT_FOUND', 'Esta despesa não tem anexo', HttpStatus.NOT_FOUND);

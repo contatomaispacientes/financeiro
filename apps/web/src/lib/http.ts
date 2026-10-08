@@ -34,13 +34,15 @@ export function buildUrl(path: string, query?: Query): string {
 
 export function send(path: string, options: RequestOptions, token: string | null): Promise<Response> {
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+  // FormData (upload) leva o próprio Content-Type com o boundary.
+  const form = options.body instanceof FormData;
+  if (options.body !== undefined && !form) headers['Content-Type'] = 'application/json';
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   return fetch(buildUrl(path, options.query), {
     method: options.method ?? 'GET',
     headers,
-    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+    body: options.body === undefined ? undefined : form ? (options.body as FormData) : JSON.stringify(options.body),
     credentials: 'include',
     signal: options.signal,
   });

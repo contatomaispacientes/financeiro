@@ -20,6 +20,7 @@ const late: ExpenseDto = {
   paymentMethod: null,
   recurrenceId: 'r-1',
   notes: null,
+  hasAttachment: false,
   createdAt: '2026-09-01T12:00:00.000Z',
 };
 

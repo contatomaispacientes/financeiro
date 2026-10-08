@@ -11,7 +11,7 @@
 - [x] 3. Despesas: criar, editar, cancelar, pagar, desfazer, lista com filtros e `summary`; auditoria
   - _Requisitos: DSP-01.1–01.3, DSP-02.1, DSP-02.2, DSP-05.1, DSP-05.2, DSP-NF2_
 
-- [ ] 4. `StorageService` (drivers local e S3) e anexos
+- [x] 4. `StorageService` (drivers local e S3) e anexos
   - _Requisitos: DSP-01.1 (anexo), DSP-NF1_
 
 - [x] 5. Recorrências: CRUD, geração idempotente, cron 05:00, `repeatMonthly`

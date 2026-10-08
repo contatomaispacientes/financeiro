@@ -189,7 +189,7 @@ export function DashboardPage() {
       </div>
 
       <PayExpenseDialog
-        expense={paying && { ...paying, category: { id: '', name: paying.categoryName }, supplier: null, status: 'OPEN', paidAt: null, paidValueCents: null, paymentMethod: null, recurrenceId: null, notes: null, createdAt: '' }}
+        expense={paying && { ...paying, category: { id: '', name: paying.categoryName }, supplier: null, status: 'OPEN', paidAt: null, paidValueCents: null, paymentMethod: null, recurrenceId: null, notes: null, hasAttachment: false, createdAt: '' }}
         onOpenChange={(o) => !o && setPaying(null)}
       />
     </>

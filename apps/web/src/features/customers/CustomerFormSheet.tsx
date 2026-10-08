@@ -104,10 +104,13 @@ export function CustomerFormSheet({
   customer,
   open,
   onOpenChange,
+  onCreated,
 }: {
   customer?: CustomerDto;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Quando presente, recebe o cliente criado no lugar de abrir a ficha (ex.: Nova cobrança). */
+  onCreated?: (customer: CustomerDto) => void;
 }) {
   const editing = Boolean(customer);
   const navigate = useNavigate();
@@ -151,7 +154,8 @@ export function CustomerFormSheet({
         const created = await create.mutateAsync(CustomerCreateSchema.parse(payload));
         toast.success(`${created.name} cadastrado.`);
         onOpenChange(false);
-        navigate(`/clientes/${created.id}`);
+        if (onCreated) onCreated(created);
+        else navigate(`/clientes/${created.id}`);
       }
     } catch (error) {
       if (!applyApiError(error, form.setError, FIELDS)) setFormError(errorMessage(error));

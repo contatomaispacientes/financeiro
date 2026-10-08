@@ -136,7 +136,7 @@ describe('[CLI-01][CLI-02][CLI-03] telas de clientes', () => {
     expect(screen.getByText(/Endereço de cobrança incompleto/)).toBeInTheDocument();
     expect(screen.getByText('Vencido', { selector: 'p' }).nextSibling).toHaveTextContent(/R\$\s100,00/);
     expect(within(screen.getByRole('main')).getByRole('link', { name: /Nova cobrança/ })).toHaveAttribute('href', '/cobrancas/nova?cliente=c-1');
-    expect(screen.getByText('Consultoria')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Consultoria' })).toHaveAttribute('href', '/cobrancas/ch-1');
 
     await userEvent.click(screen.getByRole('button', { name: 'Arquivar' }));
     await userEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Arquivar' }));

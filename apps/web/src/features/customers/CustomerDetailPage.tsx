@@ -240,7 +240,9 @@ export function CustomerDetailPage() {
                       <TableRow key={ch.id}>
                         <TableCell className="tabular">{formatDate(ch.dueDate)}</TableCell>
                         <TableCell>
-                          <p className="max-w-xs truncate">{ch.description}</p>
+                          <Link to={`/cobrancas/${ch.id}`} className="block max-w-xs truncate font-medium hover:underline">
+                            {ch.description}
+                          </Link>
                           <p className="text-xs text-muted-foreground">{chargeKind(ch)}</p>
                         </TableCell>
                         <TableCell className="tabular text-right">{formatBRL(ch.valueCents)}</TableCell>

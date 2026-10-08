@@ -108,7 +108,7 @@ describe('Configurações (integração)', () => {
     const { auth } = await loginAs(app, 'LEITURA');
     const res = await http().get('/api/v1/settings/environment').set('Authorization', auth);
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ asaasEnv: 'sandbox' });
+    expect(res.body).toEqual({ asaasEnv: 'sandbox', minChargeCents: 500 });
   });
 
   describe('[FND-04.2] GET /settings/integrations', () => {

@@ -48,6 +48,23 @@ export function addMonthsClamped(dateStr: string, months: number): string {
   return `${String(newYear).padStart(4, '0')}-${String(newMonth).padStart(2, '0')}-${String(newDay).padStart(2, '0')}`;
 }
 
+/** Data ("YYYY-MM-DD") de um instante no fuso de São Paulo. */
+export function toSaoPauloDate(instant: Date): string {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: SAO_PAULO_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(instant);
+}
+
+/** Soma dias a uma data pura ("YYYY-MM-DD"), sem fuso. */
+export function addDays(dateStr: string, days: number): string {
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
 /**
  * Checks if a due date is overdue relative to today in São Paulo.
  */

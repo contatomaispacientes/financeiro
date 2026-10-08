@@ -51,6 +51,8 @@ export interface SettingsDto {
 
 export interface EnvironmentDto {
   asaasEnv: 'sandbox' | 'production';
+  /** Valor mínimo por cobrança (ASAAS_MIN_CHARGE_CENTS), usado no cálculo do plano no front. */
+  minChargeCents: number;
 }
 
 export interface ConnectionTestResult {

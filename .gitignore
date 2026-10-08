@@ -37,3 +37,6 @@ coverage/
 
 # Storage (local uploads in dev)
 storage/
+
+# Worktrees dos agentes
+.claude/worktrees/

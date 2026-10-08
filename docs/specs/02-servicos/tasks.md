@@ -2,7 +2,7 @@
 
 > Status: **Aprovado**
 
-- [ ] 1. Schemas de serviço em `shared` + testes
+- [x] 1. Schemas de serviço em `shared` + testes
   - _Requisitos: SRV-01.1_
 
 - [ ] 2. Migration do índice único parcial por nome entre ativos

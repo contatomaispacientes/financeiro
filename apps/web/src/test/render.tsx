@@ -19,7 +19,7 @@ export function signIn(role: Role | null) {
 
 /** Selo do ambiente: o layout sempre consulta. */
 export function mockEnvironment(asaasEnv: 'sandbox' | 'production' = 'sandbox') {
-  server.use(http.get(apiUrl('/settings/environment'), () => HttpResponse.json({ asaasEnv })));
+  server.use(http.get(apiUrl('/settings/environment'), () => HttpResponse.json({ asaasEnv, minChargeCents: 500 })));
 }
 
 export function renderRoutes(routes: RouteObject[], initialPath = '/') {

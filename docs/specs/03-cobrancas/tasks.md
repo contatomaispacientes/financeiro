@@ -4,7 +4,7 @@
 
 ## Parte 1 — cobrança avulsa (M2)
 
-- [ ] 1. `ChargePlanSchema` e `calculatePlan` em `shared`
+- [x] 1. `ChargePlanSchema` e `calculatePlan` em `shared`
   - Testes cobrindo toda a lista de validações e parcelas (mesmo que parcelada só entre na parte 2).
   - _Requisitos: COB-01.1, COB-01.5, COB-03.2_
 

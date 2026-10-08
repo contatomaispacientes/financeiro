@@ -96,7 +96,10 @@ export class SettingsService {
   }
 
   environment(): EnvironmentDto {
-    return { asaasEnv: this.config.get('ASAAS_ENV', { infer: true }) };
+    return {
+      asaasEnv: this.config.get('ASAAS_ENV', { infer: true }),
+      minChargeCents: this.config.get('ASAAS_MIN_CHARGE_CENTS', { infer: true }),
+    };
   }
 
   async integrations(): Promise<IntegrationsStatusDto> {

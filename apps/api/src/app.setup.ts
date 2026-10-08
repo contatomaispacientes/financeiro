@@ -14,7 +14,10 @@ export function configureApp(app: INestApplication) {
   });
   app.setGlobalPrefix('api/v1');
 
-  if (process.env['NODE_ENV'] !== 'production') {
+  if (process.env['NODE_ENV'] === 'production') {
+    // Atrás do Caddy (docker-compose.prod.yml): req.ip vem do X-Forwarded-For, base do limite de login.
+    app.getHttpAdapter().getInstance().set('trust proxy', 1);
+  } else {
     const config = new DocumentBuilder()
       .setTitle('Financeiro API')
       .setVersion('0.1.0')

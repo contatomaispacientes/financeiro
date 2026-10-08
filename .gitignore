@@ -40,3 +40,6 @@ storage/
 
 # Worktrees dos agentes
 .claude/worktrees/
+
+# Backups do Postgres na VPS
+backups/

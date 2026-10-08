@@ -82,7 +82,7 @@ Base técnica sobre a qual todos os módulos são construídos: monorepo, banco,
 
 ## Perguntas em aberto
 
-- [ ] Hospedagem de produção (decidir até o M7).
+- [x] Hospedagem de produção → VPS Hostinger com Docker Compose + Caddy (ADR-015).
 
 ## Changelog
 

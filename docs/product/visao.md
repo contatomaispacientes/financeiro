@@ -80,4 +80,4 @@ O cliente final **não acessa** a plataforma: recebe link da fatura (Asaas) e co
 - [x] Provedor de assinatura eletrônica → **Clicksign** (ADR-009). Confirmar se o plano inclui automação com modelos via API.
 - [ ] Canal de e-mail transacional (SMTP próprio, Resend, SES…).
 - [ ] WhatsApp (API oficial via BSP ou provedor não oficial) — v1.1.
-- [ ] Hospedagem de produção (VPS com Docker, Railway, Render, Fly…).
+- [x] Hospedagem de produção → **VPS Hostinger com Docker Compose + Caddy** (ADR-015).

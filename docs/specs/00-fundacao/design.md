@@ -139,9 +139,9 @@ Roda em push na `main` e em PRs, no `ubuntu-latest` com Node do `.nvmrc` e pnpm 
 
 ## Produção (M8)
 
-- Imagens: `apps/api/Dockerfile` (multi-stage, `prisma migrate deploy` no start), `apps/web/Dockerfile` (build estático servido por Nginx/Caddy) ou web servido por CDN.
+- Imagens: `Dockerfile` na raiz com alvos `api` (`prisma migrate deploy` no start) e `web` (Caddy com o build estático) — ADR-015.
 - Proxy com HTTPS (Caddy recomendado), API em `/api`, web em `/`.
-- Backups: `pg_dump` diário para storage S3-compatível, retenção 30 dias.
+- Backups: `pg_dump` diário (contêiner `backup`) em `./backups` na VPS, retenção 30 dias; cópia externa pelos backups da Hostinger (S3 adiado — ADR-015).
 - Checklist de virada: ver FND-08.3 e `docs/integrations/asaas.md` (runbook).
 
 ## Changelog
@@ -156,3 +156,4 @@ Roda em push na `main` e em PRs, no `ubuntu-latest` com Node do `.nvmrc` e pnpm 
 | 07/10/2026 | Tarefa 9: nova rota `GET /settings/environment` (todos os papéis) para o selo do ambiente, já que `/settings/integrations` é só ADMIN. Renovação do token serializada entre abas com Web Locks e deduplicada na aba (evita disparar a detecção de reuso de FND-02.4 com duas abas ou com o StrictMode). Menu filtrado por `can()` do `shared`; rotas sem tela ainda mostram "Em construção" com a spec responsável. `DatePicker` = `<input type="date">` nativo. Auditoria em `/configuracoes/auditoria`. Dependências do web no ADR-013 |
 | 07/10/2026 | Tarefa 10: login aceita `?redirect` só com caminho interno (sem `//`, sem URL absoluta). Usuários e Auditoria guardam página e filtros na URL (`?pagina`, `?entidade`, `?usuario`, `?de`, `?ate`); Configurações guarda a aba (`?aba=integracoes`). FINANCEIRO e LEITURA veem a aba Geral desabilitada e não veem Integrações. Na auditoria, `auth.login_failed` mostra "Não autenticado" em "Quem" (o usuário gravado é a conta-alvo). Tipo `Paginated<T>` passa para o `shared`. Mensagens de validação do zod em pt-BR (ADR-014) |
 | 07/10/2026 | Tarefa 11: CI usa Testcontainers em vez de `services` (mesma infraestrutura de dev). Clone novo funciona só com `pnpm install`: `postinstall` na raiz compila o `shared` e roda `prisma generate`, que deixa de exigir `DATABASE_URL` (`prisma.config.ts` com `process.env`). `pnpm dev` passa a `pnpm -r --parallel dev` (o `&` rodava em série no Windows e o web não subia — FND-01.3). Script de telemetria `@scarf/scarf` bloqueado no `allowBuilds` |
+| 08/10/2026 | Tarefa 12 (parcial): produção em VPS Hostinger (ADR-015). Um `Dockerfile` na raiz com alvos `api`/`web` (em vez de um por app), Caddy com HTTPS, `docker-compose.prod.yml`, backup local diário com restauração testada, guia `docs/deploy.md`. Seed em produção só cria o essencial; `SEED_ADMIN_EMAIL` novo; `trust proxy` em produção |

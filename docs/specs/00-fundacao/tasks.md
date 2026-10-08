@@ -57,5 +57,6 @@
   - _Requisitos: FND-07.1_
 
 - [ ] 12. (M8) Produção
-  - Dockerfiles, guia `docs/deploy.md`, backup diário com teste de restauração, checklist de virada executado e registrado.
+  - [x] Dockerfile, `docker-compose.prod.yml`, guia `docs/deploy.md`, backup diário com teste de restauração (validado localmente em 08/10/2026).
+  - [ ] Primeiro deploy na VPS e checklist de virada executado e registrado.
   - _Requisitos: FND-08.1–FND-08.3_

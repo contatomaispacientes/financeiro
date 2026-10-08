@@ -12,15 +12,18 @@ async function main() {
   console.log('Seeding...');
 
   // 1. Admin user
-  const adminPassword = process.env['SEED_ADMIN_PASSWORD'] ?? 'admin12345678';
+  const production = process.env['NODE_ENV'] === 'production';
+  const adminEmail = (process.env['SEED_ADMIN_EMAIL'] ?? 'admin@financeiro.local').toLowerCase();
+  const adminPassword = process.env['SEED_ADMIN_PASSWORD'] ?? (production ? undefined : 'admin12345678');
+  if (!adminPassword) throw new Error('Defina SEED_ADMIN_PASSWORD (mín. 10 caracteres) para criar o admin.');
   const passwordHash = await argon2.hash(adminPassword, { type: argon2.argon2id });
 
   await prisma.user.upsert({
-    where: { email: 'admin@financeiro.local' },
+    where: { email: adminEmail },
     update: {},
     create: {
       name: 'Administrador',
-      email: 'admin@financeiro.local',
+      email: adminEmail,
       passwordHash,
       role: 'ADMIN',
     },
@@ -66,62 +69,65 @@ async function main() {
   }
   console.log('  ✓ Expense categories');
 
-  // 4. Services
-  const services = [
-    { name: 'Consultoria Financeira', defaultPriceCents: 50000 },
-    { name: 'Planejamento Tributário', defaultPriceCents: 80000 },
-    { name: 'Gestão de Cobranças', defaultPriceCents: 30000 },
-    { name: 'Assessoria Contábil', defaultPriceCents: 120000 },
-    { name: 'Análise de Crédito', defaultPriceCents: 25000 },
-    { name: 'Treinamento Financeiro', defaultPriceCents: 150000 },
-  ];
-  for (const svc of services) {
-    const existing = await prisma.service.findFirst({ where: { name: svc.name } });
-    if (!existing) {
-      await prisma.service.create({ data: svc });
+  // 4–6. Exemplos só fora de produção
+  if (!production) {
+    // 4. Services
+    const services = [
+      { name: 'Consultoria Financeira', defaultPriceCents: 50000 },
+      { name: 'Planejamento Tributário', defaultPriceCents: 80000 },
+      { name: 'Gestão de Cobranças', defaultPriceCents: 30000 },
+      { name: 'Assessoria Contábil', defaultPriceCents: 120000 },
+      { name: 'Análise de Crédito', defaultPriceCents: 25000 },
+      { name: 'Treinamento Financeiro', defaultPriceCents: 150000 },
+    ];
+    for (const svc of services) {
+      const existing = await prisma.service.findFirst({ where: { name: svc.name } });
+      if (!existing) {
+        await prisma.service.create({ data: svc });
+      }
     }
-  }
-  console.log('  ✓ Services');
-
-  // 5. Customers (fictitious)
-  const customers = [
-    { name: 'Maria Silva', personType: 'PF' as const, document: '52998224725', email: 'maria@example.com', phone: '11999990001' },
-    { name: 'João Santos', personType: 'PF' as const, document: '87748248800', email: 'joao@example.com', phone: '11999990002' },
-    { name: 'Ana Oliveira', personType: 'PF' as const, document: '45316849890', email: 'ana@example.com', phone: '11999990003' },
-    { name: 'Tech Solutions Ltda', personType: 'PJ' as const, document: '11222333000181', email: 'contato@techsol.com', phone: '11999990004' },
-    { name: 'Comércio Rápido ME', personType: 'PJ' as const, document: '33025941000125', email: 'financeiro@comercio.com', phone: '11999990005' },
-    { name: 'Indústria Brasil SA', personType: 'PJ' as const, document: '45997418000153', email: 'fiscal@industria.com', phone: '11999990006' },
-  ];
-  for (const cust of customers) {
-    const existing = await prisma.customer.findFirst({ where: { document: cust.document } });
-    if (!existing) {
-      await prisma.customer.create({ data: cust });
+    console.log('  ✓ Services');
+  
+    // 5. Customers (fictitious)
+    const customers = [
+      { name: 'Maria Silva', personType: 'PF' as const, document: '52998224725', email: 'maria@example.com', phone: '11999990001' },
+      { name: 'João Santos', personType: 'PF' as const, document: '87748248800', email: 'joao@example.com', phone: '11999990002' },
+      { name: 'Ana Oliveira', personType: 'PF' as const, document: '45316849890', email: 'ana@example.com', phone: '11999990003' },
+      { name: 'Tech Solutions Ltda', personType: 'PJ' as const, document: '11222333000181', email: 'contato@techsol.com', phone: '11999990004' },
+      { name: 'Comércio Rápido ME', personType: 'PJ' as const, document: '33025941000125', email: 'financeiro@comercio.com', phone: '11999990005' },
+      { name: 'Indústria Brasil SA', personType: 'PJ' as const, document: '45997418000153', email: 'fiscal@industria.com', phone: '11999990006' },
+    ];
+    for (const cust of customers) {
+      const existing = await prisma.customer.findFirst({ where: { document: cust.document } });
+      if (!existing) {
+        await prisma.customer.create({ data: cust });
+      }
     }
-  }
-  console.log('  ✓ Customers');
-
-  // 6. Contract template (fake provider)
-  const existing = await prisma.contractTemplate.findFirst({
-    where: { provider: 'fake', name: 'Contrato Padrão (Teste)' },
-  });
-  if (!existing) {
-    await prisma.contractTemplate.create({
-      data: {
-        name: 'Contrato Padrão (Teste)',
-        provider: 'fake',
-        providerTemplateId: 'fake-template-001',
-        variableMap: {
-          nome_cliente: 'customerName',
-          documento_cliente: 'customerDocument',
-          valor_total: 'totalFormatted',
-          descricao_servicos: 'servicesDescription',
-          data_inicio: 'startDate',
-          cidade: 'companyCity',
-        },
-      },
+    console.log('  ✓ Customers');
+  
+    // 6. Contract template (fake provider)
+    const existing = await prisma.contractTemplate.findFirst({
+      where: { provider: 'fake', name: 'Contrato Padrão (Teste)' },
     });
+    if (!existing) {
+      await prisma.contractTemplate.create({
+        data: {
+          name: 'Contrato Padrão (Teste)',
+          provider: 'fake',
+          providerTemplateId: 'fake-template-001',
+          variableMap: {
+            nome_cliente: 'customerName',
+            documento_cliente: 'customerDocument',
+            valor_total: 'totalFormatted',
+            descricao_servicos: 'servicesDescription',
+            data_inicio: 'startDate',
+            cidade: 'companyCity',
+          },
+        },
+      });
+    }
+    console.log('  ✓ Contract template (fake)');
   }
-  console.log('  ✓ Contract template (fake)');
 
   // 7. Reminder templates (default)
   const reminderTemplates = [

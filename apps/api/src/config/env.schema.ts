@@ -47,6 +47,7 @@ export const envSchema = z.object({
   MAIL_FROM: z.string().default('financeiro@local.test'),
 
   // Seed
+  SEED_ADMIN_EMAIL: z.email().optional(),
   SEED_ADMIN_PASSWORD: z.string().min(10).optional(),
 });
 

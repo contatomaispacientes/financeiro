@@ -67,7 +67,13 @@ describe('HttpAsaasClient.ping', () => {
   });
 
   it('[FND-04.3] timeout → ASAAS_UNAVAILABLE', async () => {
-    nock(SANDBOX).get('/v3/finance/balance').delay(500).reply(200, {});
+    // Asaas sem responder nem os cabeçalhos (no nock 15, `.delay()` só atrasa o corpo).
+    nock(SANDBOX)
+      .get('/v3/finance/balance')
+      .reply(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 500));
+        return [200, {}];
+      });
     const client = clientFor();
     client.timeoutMs = 50;
 

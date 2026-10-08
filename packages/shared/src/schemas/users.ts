@@ -1,8 +1,8 @@
-import { z } from 'zod';
+import { z } from '../zod.js';
 import { RoleEnum } from './auth.js';
 import type { Role } from '../enums.js';
 
-const email = z.string().trim().toLowerCase().email();
+const email = z.string().trim().toLowerCase().pipe(z.email());
 const password = z.string().min(10, 'A senha precisa ter ao menos 10 caracteres').max(128);
 
 export const UserCreateSchema = z.object({
@@ -21,7 +21,7 @@ export const UserUpdateSchema = z
     active: z.boolean(),
   })
   .partial()
-  .refine((v) => Object.keys(v).length > 0, { message: 'Informe ao menos um campo' });
+  .refine((v) => Object.keys(v).length > 0, { error: 'Informe ao menos um campo' });
 export type UserUpdateInput = z.infer<typeof UserUpdateSchema>;
 
 export const ResetPasswordSchema = z.object({ newPassword: password });

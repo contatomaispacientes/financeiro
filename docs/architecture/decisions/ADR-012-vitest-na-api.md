@@ -18,7 +18,7 @@ No scaffold da fundação (FND tarefa 1) foram fixadas as versões estáveis atu
   - `pino-pretty` — formatação dos logs só fora de produção (em produção o log é JSON puro).
   - `@types/express` — tipos de `Request`/`Response` nos filtros e controllers.
   - `ioredis` — no BullMQ 6 o cliente Redis virou dependência opcional (o BullMQ passou a aceitar outros backends); sem ele nenhuma fila conecta.
-- `engines.node` passa a `>=22.12.0`: a API compila para CommonJS e importa o `shared` (ESM) via `require()`, suportado sem flag a partir do Node 22.12.
+- `engines.node` passa a `>=22.12.0`: a API compila para CommonJS e importa o `shared` (ESM) via `require()`, suportado sem flag a partir do Node 22.12. (Depois elevado para Node 24 LTS — ADR-014.)
 
 ## Consequências
 - `pnpm --filter api test` = `vitest run`; `test:e2e` = `vitest run --config vitest.e2e.config.ts`.

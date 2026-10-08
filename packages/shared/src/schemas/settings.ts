@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from '../zod.js';
 import { isValidCpfOrCnpj, onlyDigits } from '../document.js';
 
 export const ReminderChannelEnum = z.enum(['ASAAS', 'EMAIL', 'WHATSAPP']);
@@ -8,7 +8,7 @@ export const SettingsUpdateSchema = z
     companyName: z.string().trim().max(120).nullable(),
     companyDocument: z
       .string()
-      .refine(isValidCpfOrCnpj, 'CPF ou CNPJ inválido')
+      .refine(isValidCpfOrCnpj, { error: 'CPF ou CNPJ inválido' })
       .transform(onlyDigits)
       .nullable(),
     companyCity: z.string().trim().max(80).nullable(),
@@ -21,14 +21,14 @@ export const SettingsUpdateSchema = z
     reminderDaysAfter: z.array(z.number().int().min(1).max(60)).max(5),
     reminderChannels: z.array(ReminderChannelEnum).min(1),
     companySignerName: z.string().trim().min(2).max(120).nullable(),
-    companySignerEmail: z.string().trim().toLowerCase().email().nullable(),
+    companySignerEmail: z.string().trim().toLowerCase().pipe(z.email()).nullable(),
     companySignerPhone: z
       .string()
       .regex(/^\d{10,11}$/, 'Telefone com DDD, só números')
       .nullable(),
   })
   .partial()
-  .refine((v) => Object.keys(v).length > 0, { message: 'Informe ao menos um campo' });
+  .refine((v) => Object.keys(v).length > 0, { error: 'Informe ao menos um campo' });
 export type SettingsUpdateInput = z.infer<typeof SettingsUpdateSchema>;
 
 export interface SettingsDto {

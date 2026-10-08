@@ -11,6 +11,7 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 120_000,
     pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
+    // Os arquivos compartilham o mesmo banco (ex.: LAST_ADMIN desativa todos os admins): um por vez.
+    fileParallelism: false,
   },
 });

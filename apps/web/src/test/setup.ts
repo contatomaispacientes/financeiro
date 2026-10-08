@@ -17,7 +17,7 @@ globalThis.Request = class extends NodeRequest {
   }
 } as typeof Request;
 
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));
 afterEach(() => {
   cleanup();
   server.resetHandlers();

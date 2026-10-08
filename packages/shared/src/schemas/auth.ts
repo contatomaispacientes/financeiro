@@ -1,10 +1,10 @@
-import { z } from 'zod';
+import { z } from '../zod.js';
 import { Role } from '../enums.js';
 
 export const RoleEnum = z.enum([Role.ADMIN, Role.FINANCEIRO, Role.LEITURA]);
 
 export const LoginSchema = z.object({
-  email: z.string().trim().toLowerCase().email(),
+  email: z.string().trim().toLowerCase().pipe(z.email()),
   password: z.string().min(8),
 });
 export type LoginInput = z.infer<typeof LoginSchema>;

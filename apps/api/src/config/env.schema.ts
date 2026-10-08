@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().int().positive().default(3000),
-  WEB_ORIGIN: z.string().url().default('http://localhost:5173'),
+  WEB_ORIGIN: z.url().default('http://localhost:5173'),
   APP_TIMEZONE: z.string().default('America/Sao_Paulo'),
 
   // Database

@@ -26,7 +26,7 @@ export async function createTestApp(): Promise<INestApplication> {
   });
 
   // Importado depois do env: o AppModule lê NODE_ENV ao ser avaliado.
-  const { AppModule } = await import('../../src/app.module');
+  const { AppModule } = await import('../../src/app.module.js');
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
   const app = moduleRef.createNestApplication({ bufferLogs: true });
   configureApp(app);

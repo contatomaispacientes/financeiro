@@ -502,9 +502,11 @@ model ReminderTemplate {
   body       String
   active     Boolean         @default(true)
   updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz
-  @@map("reminder_templates")
-  // Índice único por migration SQL (PostgreSQL 15+):
+  // O índice real é NULLS NOT DISTINCT, criado por migration SQL (PostgreSQL 15+):
   // CREATE UNIQUE INDEX reminder_templates_uq ON reminder_templates (kind, channel, offset_days) NULLS NOT DISTINCT;
+  // Declarado aqui com o mesmo nome para o `migrate dev` não gerar DROP INDEX (ver "Objetos criados por SQL").
+  @@unique([kind, channel, offsetDays], map: "reminder_templates_uq")
+  @@map("reminder_templates")
 }
 
 model ReminderLog {
@@ -524,6 +526,14 @@ model ReminderLog {
   // CREATE UNIQUE INDEX reminder_logs_auto_uq ON reminder_logs (charge_id, kind, channel, offset_days) WHERE kind <> 'MANUAL';
 }
 ```
+
+## Objetos criados por SQL (fora do que o Prisma expressa)
+
+| Objeto | Migration | Como o Prisma vê |
+| --- | --- | --- |
+| `reminder_templates_uq` (único, `NULLS NOT DISTINCT`) | `20261007234521_reminder_templates_uq` | Declarado como `@@unique(..., map:)`; o Prisma não enxerga o `NULLS NOT DISTINCT`, mas não tenta recriar |
+
+Regra: toda migration SQL manual precisa deixar `prisma migrate diff --from-config-datasource --to-schema` vazio — senão o próximo `migrate dev` gera `DROP` silencioso. O teste de integração `schema-drift.e2e-spec.ts` garante isso no CI.
 
 ## Regras de integridade
 

@@ -504,6 +504,9 @@ model ReminderTemplate {
   active     Boolean         @default(true)
   updatedAt  DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
+  // O índice real é NULLS NOT DISTINCT (migration 20261007234521): offsetDays null é um valor único.
+  // Declarado aqui para o `migrate dev` não gerar DROP INDEX; o Prisma não expressa NULLS NOT DISTINCT.
+  @@unique([kind, channel, offsetDays], map: "reminder_templates_uq")
   @@map("reminder_templates")
 }
 

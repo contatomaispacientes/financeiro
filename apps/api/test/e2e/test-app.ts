@@ -10,7 +10,7 @@ import { PrismaService } from '../../src/prisma/prisma.service';
 
 export const TEST_PASSWORD = 'senha-de-teste-123';
 
-export async function createTestApp(): Promise<INestApplication> {
+export async function createTestApp(env: Record<string, string> = {}): Promise<INestApplication> {
   // Só o servidor local do supertest; Asaas e afins precisam de `nock` explícito no teste.
   nock.disableNetConnect();
   nock.enableNetConnect(/^(127\.0\.0\.1|localhost)(:\d+)?$/);
@@ -26,6 +26,7 @@ export async function createTestApp(): Promise<INestApplication> {
     ASAAS_ENV: 'sandbox',
     ASAAS_API_KEY: 'test-key',
     ASAAS_WEBHOOK_TOKEN: 'webhook-token-for-tests-only-0123456789',
+    ...env,
   });
 
   // Importado depois do env: o AppModule lê NODE_ENV ao ser avaliado.

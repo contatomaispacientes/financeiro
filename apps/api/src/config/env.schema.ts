@@ -19,8 +19,9 @@ export const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
 
   // Asaas
-  ASAAS_ENV: z.enum(['sandbox', 'production']).default('sandbox'),
-  ASAAS_API_KEY: z.string().min(1, 'ASAAS_API_KEY is required'),
+  // mock = Asaas simulado, sem conta (ADR-016)
+  ASAAS_ENV: z.enum(['sandbox', 'production', 'mock']).default('sandbox'),
+  ASAAS_API_KEY: z.string().default(''),
   ASAAS_WEBHOOK_TOKEN: z.string().min(32, 'ASAAS_WEBHOOK_TOKEN must be at least 32 characters'),
   ASAAS_MIN_CHARGE_CENTS: z.coerce.number().int().positive().default(500),
 
@@ -59,12 +60,13 @@ export type Env = z.infer<typeof envSchema>;
  */
 export function validateEnv(config: Record<string, unknown>): Env {
   const result = envSchema.safeParse(config);
-
-  if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-      .join('\n');
-    throw new Error(`Invalid environment variables:\n${issues}`);
+  const issues = result.success ? [] : result.error.issues.map((i) => `  - ${i.path.join('.')}: ${i.message}`);
+  // Fora do schema para aparecer junto com os demais erros: a chave só é dispensada no Asaas simulado (ADR-016).
+  if (config['ASAAS_ENV'] !== 'mock' && !config['ASAAS_API_KEY']) {
+    issues.push('  - ASAAS_API_KEY: required (or use ASAAS_ENV=mock)');
+  }
+  if (!result.success || issues.length > 0) {
+    throw new Error(`Invalid environment variables:\n${issues.join('\n')}`);
   }
 
   return result.data;

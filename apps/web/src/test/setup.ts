@@ -1,7 +1,10 @@
 import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll } from 'vitest';
 import { server } from './server';
+
+// Com a suíte inteira em paralelo, telas com várias consultas passam de 1 s para aparecer.
+configure({ asyncUtilTimeout: 3000 });
 
 // O React Router cria `new Request(url, { signal })` com o AbortSignal do jsdom, que o Request
 // nativo do Node rejeita. Nos testes nada é cancelado, então o signal pode ser descartado.

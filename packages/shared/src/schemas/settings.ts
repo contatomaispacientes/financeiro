@@ -50,7 +50,7 @@ export interface SettingsDto {
 }
 
 export interface EnvironmentDto {
-  asaasEnv: 'sandbox' | 'production';
+  asaasEnv: 'sandbox' | 'production' | 'mock';
   /** Valor mínimo por cobrança (ASAAS_MIN_CHARGE_CENTS), usado no cálculo do plano no front. */
   minChargeCents: number;
 }
@@ -64,7 +64,7 @@ export interface ConnectionTestResult {
 
 export interface IntegrationsStatusDto {
   asaas: {
-    env: 'sandbox' | 'production';
+    env: 'sandbox' | 'production' | 'mock';
     apiKeyConfigured: boolean;
     webhookTokenConfigured: boolean;
     webhookPath: string;

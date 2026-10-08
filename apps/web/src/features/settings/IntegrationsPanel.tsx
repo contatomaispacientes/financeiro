@@ -108,7 +108,7 @@ export function IntegrationsPanel() {
           <dl className="divide-y">
             <Row label="Ambiente">
               <span className={cn('font-medium', production ? 'text-emerald-800' : 'text-amber-800')}>
-                {production ? 'Produção (cobranças reais)' : 'Sandbox (testes)'}
+                {production ? 'Produção (cobranças reais)' : asaas.env === 'mock' ? 'Simulado (sem conta no Asaas; use "Simular pagamento" na cobrança)' : 'Sandbox (testes)'}
               </span>
             </Row>
             <Row label="Chave de API">

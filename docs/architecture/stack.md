@@ -102,7 +102,7 @@ Tokens visuais iniciais (do protótipo): fundo `#F2F3EF`, superfície `#FFFFFF`,
 | `DATABASE_URL` | `postgresql://…` | |
 | `REDIS_URL` | `redis://localhost:6379` | |
 | `JWT_ACCESS_SECRET` / `JWT_REFRESH_SECRET` | 32+ caracteres | |
-| `ASAAS_ENV` | `sandbox` \| `production` | Define a base URL |
+| `ASAAS_ENV` | `sandbox` \| `production` \| `mock` | Define a base URL; `mock` usa o simulador local (ADR-016) |
 | `ASAAS_API_KEY` | `$aact_…` | Nunca no banco nem no front (ADR-003) |
 | `ASAAS_WEBHOOK_TOKEN` | string aleatória 32+ | Comparado ao header `asaas-access-token` |
 | `ASAAS_MIN_CHARGE_CENTS` | `500` | Valor mínimo por cobrança (confirmar no sandbox) |

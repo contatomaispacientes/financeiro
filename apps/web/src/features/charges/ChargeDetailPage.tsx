@@ -14,6 +14,7 @@ import { ApiError } from '@/lib/http';
 import { displayDocument } from '@/features/customers/CustomersPage';
 import { useCharge, useChargeAction } from './api';
 import { billingTypeLabels, chargeTypeLabel, eventLabel, eventNote, originLabels } from './labels';
+import { MockSimulator } from './MockSimulator';
 import { PaymentData } from './PaymentData';
 
 function Item({ label, children }: { label: string; children: ReactNode }) {
@@ -190,6 +191,7 @@ export function ChargeDetailPage() {
         </div>
 
         <div className="min-w-0 space-y-6">
+          {canManage && <MockSimulator charge={c} />}
           <Card title="Dados para pagamento">
             <PaymentData charge={c} />
           </Card>

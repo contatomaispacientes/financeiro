@@ -19,3 +19,4 @@ Formato curto: contexto → decisão → consequências. Um ADR aceito só muda 
 | [013](ADR-013-dependencias-do-web.md) | Dependências do web trazidas pelo shadcn/ui e pelo scaffold | Aceito |
 | [014](ADR-014-versoes-fixadas.md) | Versões fixadas e exceções à "última estável" (TypeScript 6, Prisma 7) | Aceito |
 | [015](ADR-015-deploy-vps-docker.md) | Produção em VPS Hostinger com Docker Compose, Caddy e backup local | Aceito |
+| [016](ADR-016-asaas-simulado.md) | Asaas simulado (`ASAAS_ENV=mock`) para usar o sistema sem conta | Aceito |

@@ -166,7 +166,7 @@ export function NewChargePage() {
         key={formKey}
         settings={settings.data}
         minChargeCents={environment.data.minChargeCents}
-        sandbox={environment.data.asaasEnv === 'sandbox'}
+        sandbox={environment.data.asaasEnv !== 'production'}
         initialCustomer={initialCustomer}
         customerNotice={customerNotice}
         onCreated={setCreated}
@@ -570,7 +570,7 @@ function ChargeForm({
               )}
             </>
           )}
-          {sandbox && <p className="mt-3 text-center text-xs text-muted-foreground">Asaas em sandbox: nada é cobrado de verdade.</p>}
+          {sandbox && <p className="mt-3 text-center text-xs text-muted-foreground">Asaas de teste: nada é cobrado de verdade.</p>}
         </section>
 
         <ApiPreview request={request} />

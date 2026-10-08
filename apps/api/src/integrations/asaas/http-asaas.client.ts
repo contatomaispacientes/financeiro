@@ -1,11 +1,12 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { toCents } from '@financeiro/shared';
+import { fromCents, toCents, type Cycle } from '@financeiro/shared';
 import type { Env } from '../../config/env.schema';
 import { DomainException } from '../../common/filters/domain-exception.filter';
 import {
   ASAAS_BASE_URLS,
   asaasPaymentBody,
+  asaasSubscriptionBody,
   type AsaasBillingType,
   type AsaasClient,
   type AsaasCustomer,
@@ -18,6 +19,8 @@ import {
   type AsaasPaymentInput,
   type AsaasPingResult,
   type AsaasPixQrCode,
+  type AsaasSubscription,
+  type AsaasSubscriptionInput,
 } from './asaas.client';
 
 const USER_AGENT = 'financeiro/0.1.0';
@@ -76,7 +79,8 @@ export class HttpAsaasClient implements AsaasClient {
   retryDelaysMs = [1_000, 3_000, 9_000];
 
   constructor(config: ConfigService<Env, true>) {
-    this.baseUrl = ASAAS_BASE_URLS[config.get('ASAAS_ENV', { infer: true })];
+    const env = config.get('ASAAS_ENV', { infer: true });
+    this.baseUrl = env === 'mock' ? '' : ASAAS_BASE_URLS[env];
     this.apiKey = config.get('ASAAS_API_KEY', { infer: true });
   }
 
@@ -145,6 +149,30 @@ export class HttpAsaasClient implements AsaasClient {
       `/payments/${encodeURIComponent(id)}/identificationField`,
     );
     return { identificationField: raw.identificationField, barCode: raw.barCode };
+  }
+
+  async refundPayment(id: string, valueCents?: number, description?: string): Promise<AsaasPayment> {
+    const body = { ...(valueCents !== undefined && { value: fromCents(valueCents) }), ...(description && { description }) };
+    // POST não repete sozinho: um estorno duplicado devolveria dinheiro duas vezes.
+    return toPayment(await this.request<RawPayment>('POST', `/payments/${encodeURIComponent(id)}/refund`, body));
+  }
+
+  async createSubscription(input: AsaasSubscriptionInput): Promise<AsaasSubscription> {
+    return toSubscription(await this.request<RawSubscription>('POST', '/subscriptions', asaasSubscriptionBody(input)));
+  }
+
+  async getSubscription(id: string): Promise<AsaasSubscription> {
+    return toSubscription(await this.request<RawSubscription>('GET', `/subscriptions/${encodeURIComponent(id)}`));
+  }
+
+  async listSubscriptions(filter: { externalReference?: string }): Promise<AsaasPage<AsaasSubscription>> {
+    const query = filter.externalReference ? `?externalReference=${encodeURIComponent(filter.externalReference)}` : '';
+    const page = await this.request<{ data: RawSubscription[]; hasMore: boolean; totalCount: number }>('GET', `/subscriptions${query}`);
+    return { data: page.data.map(toSubscription), hasMore: page.hasMore, totalCount: page.totalCount };
+  }
+
+  async deleteSubscription(id: string): Promise<void> {
+    await this.request('DELETE', `/subscriptions/${encodeURIComponent(id)}`);
   }
 
   private async request<T>(method: Method, path: string, body?: unknown, retry = method !== 'POST'): Promise<T> {
@@ -222,6 +250,36 @@ function toPayment(raw: RawPayment): AsaasPayment {
     subscription: raw.subscription ?? null,
     invoiceUrl: raw.invoiceUrl ?? null,
     bankSlipUrl: raw.bankSlipUrl ?? null,
+    deleted: raw.deleted ?? false,
+  };
+}
+
+interface RawSubscription {
+  id: string;
+  customer: string;
+  status: string;
+  billingType: AsaasBillingType;
+  value: number;
+  nextDueDate: string;
+  cycle: Cycle;
+  endDate?: string | null;
+  description?: string | null;
+  externalReference?: string | null;
+  deleted?: boolean;
+}
+
+function toSubscription(raw: RawSubscription): AsaasSubscription {
+  return {
+    id: raw.id,
+    customer: raw.customer,
+    status: raw.status,
+    billingType: raw.billingType,
+    valueCents: toCents(raw.value),
+    nextDueDate: raw.nextDueDate,
+    cycle: raw.cycle,
+    endDate: raw.endDate ?? null,
+    description: raw.description ?? null,
+    externalReference: raw.externalReference ?? null,
     deleted: raw.deleted ?? false,
   };
 }

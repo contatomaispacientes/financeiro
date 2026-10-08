@@ -1,4 +1,4 @@
-import { fromCents } from '@financeiro/shared';
+import { fromCents, type Cycle } from '@financeiro/shared';
 
 export const ASAAS_CLIENT = Symbol('ASAAS_CLIENT');
 
@@ -51,6 +51,9 @@ export interface AsaasPaymentInput {
   externalReference: string;
   finePct: number;
   interestPct: number;
+  /** Parcelada: o Asaas cria o parcelamento e divide `totalValueCents` (COB-03). */
+  installmentCount?: number;
+  totalValueCents?: number;
 }
 
 export interface AsaasPayment {
@@ -79,6 +82,35 @@ export interface AsaasPaymentFilter {
   subscription?: string;
   offset?: number;
   limit?: number;
+}
+
+/** POST /subscriptions (COB-04). */
+export interface AsaasSubscriptionInput {
+  customer: string;
+  billingType: AsaasBillingType;
+  valueCents: number;
+  nextDueDate: string;
+  cycle: Cycle;
+  endDate?: string | null;
+  description: string;
+  externalReference: string;
+  finePct: number;
+  interestPct: number;
+}
+
+export interface AsaasSubscription {
+  id: string;
+  customer: string;
+  /** ACTIVE, INACTIVE, EXPIRED. */
+  status: string;
+  billingType: AsaasBillingType;
+  valueCents: number;
+  nextDueDate: string;
+  cycle: Cycle;
+  endDate: string | null;
+  description: string | null;
+  externalReference: string | null;
+  deleted: boolean;
 }
 
 export interface AsaasPage<T> {
@@ -112,6 +144,13 @@ export interface AsaasClient {
   deletePayment(id: string): Promise<void>;
   getPixQrCode(id: string): Promise<AsaasPixQrCode>;
   getIdentificationField(id: string): Promise<AsaasIdentificationField>;
+  /** Estorno total (sem valor) ou parcial; o status muda pelo webhook (COB-09). */
+  refundPayment(id: string, valueCents?: number, description?: string): Promise<AsaasPayment>;
+
+  createSubscription(input: AsaasSubscriptionInput): Promise<AsaasSubscription>;
+  getSubscription(id: string): Promise<AsaasSubscription>;
+  listSubscriptions(filter: { externalReference?: string }): Promise<AsaasPage<AsaasSubscription>>;
+  deleteSubscription(id: string): Promise<void>;
 }
 
 /**
@@ -122,8 +161,26 @@ export function asaasPaymentBody(input: AsaasPaymentInput) {
   return {
     customer: input.customer,
     billingType: input.billingType,
-    value: fromCents(input.valueCents),
+    ...(input.installmentCount
+      ? { installmentCount: input.installmentCount, totalValue: fromCents(input.totalValueCents ?? input.valueCents) }
+      : { value: fromCents(input.valueCents) }),
     dueDate: input.dueDate,
+    description: input.description,
+    externalReference: input.externalReference,
+    ...(input.finePct > 0 && { fine: { value: input.finePct, type: 'PERCENTAGE' as const } }),
+    ...(input.interestPct > 0 && { interest: { value: input.interestPct } }),
+  };
+}
+
+/** Corpo de POST /subscriptions. */
+export function asaasSubscriptionBody(input: AsaasSubscriptionInput) {
+  return {
+    customer: input.customer,
+    billingType: input.billingType,
+    value: fromCents(input.valueCents),
+    nextDueDate: input.nextDueDate,
+    cycle: input.cycle,
+    ...(input.endDate && { endDate: input.endDate }),
     description: input.description,
     externalReference: input.externalReference,
     ...(input.finePct > 0 && { fine: { value: input.finePct, type: 'PERCENTAGE' as const } }),

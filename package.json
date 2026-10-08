@@ -16,7 +16,8 @@
     "db:seed": "pnpm --filter api db:seed",
     "db:migrate": "pnpm --filter api prisma migrate dev",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md}\"",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\""
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md}\"",
+    "db:seed:demo": "pnpm --filter api db:seed:demo"
   },
   "devDependencies": {
     "eslint": "^10.12.0",

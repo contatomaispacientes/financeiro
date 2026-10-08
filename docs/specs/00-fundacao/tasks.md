@@ -48,7 +48,7 @@
   - Componentes base, `MoneyInput`, `StatusBadge`.
   - _Requisitos: FND-06.1, FND-06.3_
 
-- [ ] 10. Telas de Login, Usuários, Configurações (Geral e Integrações) e Auditoria
+- [x] 10. Telas de Login, Usuários, Configurações (Geral e Integrações) e Auditoria
   - Testes de componente: login, expiração do token → refresh → repetição da chamada; logout ao falhar refresh com retorno à rota.
   - _Requisitos: FND-06.2, FND-03.1, FND-04, FND-05.2_
 

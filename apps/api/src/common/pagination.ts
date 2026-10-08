@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Paginated } from '@financeiro/shared';
 
 export const PaginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -7,14 +8,7 @@ export const PaginationSchema = z.object({
 
 export type PaginationQuery = z.infer<typeof PaginationSchema>;
 
-export interface PaginatedResponse<T> {
-  data: T[];
-  meta: {
-    page: number;
-    pageSize: number;
-    total: number;
-  };
-}
+export type PaginatedResponse<T> = Paginated<T>;
 
 export function paginatedResponse<T>(
   data: T[],

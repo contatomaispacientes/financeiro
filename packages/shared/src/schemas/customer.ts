@@ -1,6 +1,14 @@
 import { z } from '../zod.js';
 import { isValidCpfOrCnpj, onlyDigits } from '../document.js';
-import type { PersonType } from '../enums.js';
+import type {
+  BillingType,
+  ChargeStatus,
+  ChargeType,
+  ContractStatus,
+  Cycle,
+  PersonType,
+  SubscriptionStatus,
+} from '../enums.js';
 
 export const BRAZILIAN_STATES = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA',
@@ -87,3 +95,88 @@ export function isAddressComplete(address: unknown): boolean {
 export function personTypeFromDocument(document: string): PersonType {
   return onlyDigits(document).length === 14 ? 'PJ' : 'PF';
 }
+
+export const CustomerLookupQuerySchema = z.object({
+  document: z
+    .string()
+    .transform(onlyDigits)
+    .refine(isValidCpfOrCnpj, { error: 'CPF ou CNPJ inválido' }),
+});
+
+export interface CustomerDto {
+  id: string;
+  name: string;
+  personType: PersonType;
+  /** Só dígitos; para o papel LEITURA vem mascarado (ex.: "***.982.247-**", CLI-02.4). */
+  document: string;
+  email: string | null;
+  phone: string | null;
+  address: Address | null;
+  notes: string | null;
+  remindersEnabled: boolean;
+  asaasCustomerId: string | null;
+  asaasSyncError: string | null;
+  archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Totais do cliente (CLI-02.2, CLI-03.1):
+ * pago = PAID/CONFIRMED/PARTIALLY_REFUNDED pelo valor menos o estornado;
+ * em aberto = PENDING + OVERDUE (inclui o vencido); vencido = OVERDUE;
+ * cobranças = todas exceto DRAFT e CANCELED.
+ */
+export interface CustomerTotals {
+  chargesCount: number;
+  paidCents: number;
+  openCents: number;
+  overdueCents: number;
+}
+
+export interface CustomerChargeSummary {
+  id: string;
+  description: string;
+  type: ChargeType;
+  status: ChargeStatus;
+  billingType: BillingType;
+  valueCents: number;
+  dueDate: string;
+  paidAt: string | null;
+  installmentNumber: number | null;
+  installmentCount: number | null;
+  asaasPaymentId: string | null;
+}
+
+export interface CustomerSubscriptionSummary {
+  id: string;
+  description: string;
+  status: SubscriptionStatus;
+  cycle: Cycle;
+  valueCents: number;
+  nextDueDate: string;
+}
+
+export interface CustomerContractSummary {
+  id: string;
+  title: string;
+  status: ContractStatus;
+  totalCents: number;
+  sentAt: string | null;
+  signedAt: string | null;
+  createdAt: string;
+}
+
+export interface CustomerDetailDto extends CustomerDto {
+  totals: CustomerTotals;
+  /** 20 mais recentes. */
+  recentCharges: CustomerChargeSummary[];
+  /** Só as ativas. */
+  subscriptions: CustomerSubscriptionSummary[];
+  /** 20 mais recentes. */
+  contracts: CustomerContractSummary[];
+}
+
+export type CustomerLookupDto =
+  | { exists: false }
+  | { exists: true; customerId: string; name: string; archived: boolean };

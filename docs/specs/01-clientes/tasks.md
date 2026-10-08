@@ -8,7 +8,7 @@
 - [x] 2. Migration de busca (unaccent, pg_trgm, índice trigram em nome)
   - _Requisitos: CLI-NF1_
 
-- [ ] 3. `CustomersModule`: criar, obter, editar, lookup por documento
+- [x] 3. `CustomersModule`: criar, obter, editar, lookup por documento
   - Duplicado, documento travado se houver cobrança, auditoria.
   - Testes de integração.
   - _Requisitos: CLI-01.1–01.4, CLI-04.1, CLI-04.3, CLI-NF2_

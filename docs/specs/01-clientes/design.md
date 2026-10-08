@@ -20,11 +20,22 @@ A busca por nome **precisa** usar exatamente `public.f_unaccent(lower(name)) LIK
 | GET | `/customers/:id` | todos | — | `CustomerDetail` | CLI-03 |
 | PATCH | `/customers/:id` | ADMIN, FIN | `CustomerUpdate` | `Customer` | CLI-04.1–04.3 |
 | POST | `/customers/:id/archive` · `/unarchive` | ADMIN, FIN | — | `Customer` | CLI-04.4, CLI-04.5 |
-| GET | `/customers/lookup?document=` | ADMIN, FIN | — | `{ exists, customerId? }` | CLI-01.3 (checagem ao digitar) |
+| GET | `/customers/lookup?document=` | ADMIN, FIN | — | `{ exists: false }` ou `{ exists: true, customerId, name, archived }` | CLI-01.3 (checagem ao digitar) |
 
 `CustomerListItem` inclui agregados (`chargesCount`, `paidCents`, `openCents`, `overdueCents`) calculados por uma única query com `GROUP BY` (sem N+1).
 
-`CustomerDetail` = cliente + agregados + `recentCharges` (20) + `subscriptions` ativas + `contracts` (20).
+`CustomerDetail` = cliente + agregados (`totals`) + `recentCharges` (20, `created_at` desc) + `subscriptions` ativas (`next_due_date` asc) + `contracts` (20, `created_at` desc).
+
+**Agregados** (mesma base de status do dashboard, spec 06; função `computeTotals`):
+
+| Total | Regra |
+| --- | --- |
+| `paidCents` | `PAID`, `CONFIRMED`, `PARTIALLY_REFUNDED`: `value_cents − refunded_cents` |
+| `openCents` | `PENDING` + `OVERDUE` (inclui o vencido) |
+| `overdueCents` | `OVERDUE` |
+| `chargesCount` | todas exceto `DRAFT` e `CANCELED` |
+
+**Trava do documento** (CLI-04.3): `details.reasons` com `ASAAS_CUSTOMER` (tem `asaas_customer_id`), `CHARGES` (cobrança com status diferente de `DRAFT`) e/ou `CONTRACTS` (contrato com status diferente de `DRAFT`). Reenviar o mesmo documento não conta como troca.
 
 ## Schemas (shared/schemas/customer.ts)
 
@@ -59,7 +70,8 @@ Em PATCH, campo ausente = não altera; `null` = apaga. Helpers: `isAddressComple
 
 | Código | HTTP | Quando |
 | --- | --- | --- |
-| `CUSTOMER_DUPLICATE` | 409 | CLI-01.3 (`details.customerId`) |
+| `CUSTOMER_DUPLICATE` | 409 | CLI-01.3 (`details: { customerId, name, archived }`) |
+| `NOT_FOUND` | 404 | cliente inexistente |
 | `CUSTOMER_DOCUMENT_LOCKED` | 409 | CLI-04.3 (cobrança emitida, contrato enviado ou `asaas_customer_id`) |
 | `CUSTOMER_HAS_OPEN_ITEMS` | 409 | CLI-04.4 (`details` com contagens) |
 | `CUSTOMER_ARCHIVED` | 422 | usado por cobranças/contratos |
@@ -90,3 +102,4 @@ Em PATCH, campo ausente = não altera; `null` = apaga. Helpers: `isAddressComple
 | 07/10/2026 | Revisão: schema de update sem defaults, sync sem jobId fixo (ADR-010), `notificationDisabled` considera o cliente, aviso de endereço |
 | 08/10/2026 | Tarefa 1: schema em sintaxe do zod 4 (ADR-014); campos opcionais vazios viram `null` (PATCH: ausente = mantém, `null` = apaga); CEP aceita máscara; UF validada contra as 27 siglas; mensagens em pt-BR; helpers de formatação para exibição |
 | 08/10/2026 | Tarefa 2: migration de busca com `f_unaccent` em `BEGIN ATOMIC` e índice `customers_name_search_idx`; expressão de consulta obrigatória documentada acima |
+| 08/10/2026 | Tarefa 3: definição dos agregados (alinhada à spec 06), ordenação das listas da ficha, `lookup` devolve também `name` e `archived`, `details.reasons` na trava de documento, LEITURA vê documento mascarado também na ficha; auditoria `customer.create`/`customer.update` com documento mascarado; edição trava a linha (`FOR UPDATE`) |

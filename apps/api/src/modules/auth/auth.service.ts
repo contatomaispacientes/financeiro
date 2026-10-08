@@ -24,7 +24,7 @@ interface UserRow {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: Role;
 }
 
 @Injectable()
@@ -146,6 +146,6 @@ export class AuthService implements OnModuleInit {
   }
 
   private toAuthUser(user: UserRow): AuthUser {
-    return { id: user.id, name: user.name, email: user.email, role: user.role as Role };
+    return { id: user.id, name: user.name, email: user.email, role: user.role };
   }
 }

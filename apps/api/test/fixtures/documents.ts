@@ -1,4 +1,4 @@
-let sequence = 100_000_000;
+import { randomInt } from 'node:crypto';
 
 function checkDigit(digits: number[], startWeight: number): number {
   const sum = digits.reduce((acc, d, i) => acc + d * (startWeight - i), 0);
@@ -6,10 +6,15 @@ function checkDigit(digits: number[], startWeight: number): number {
   return rest === 10 ? 0 : rest;
 }
 
-/** CPF válido e único por chamada (só dígitos), para fixtures de teste. */
+/**
+ * CPF válido (só dígitos) para fixtures. Sorteado a cada chamada: cada arquivo de teste roda em
+ * processo próprio sobre o mesmo banco, então um contador local repetiria documentos entre arquivos.
+ */
 export function nextCpf(): string {
-  sequence += 1;
-  const base = String(sequence).padStart(9, '0').split('').map(Number);
+  let base: number[];
+  do {
+    base = String(randomInt(100_000_000, 1_000_000_000)).split('').map(Number);
+  } while (base.every((d) => d === base[0]));
   const d1 = checkDigit(base, 10);
   const d2 = checkDigit([...base, d1], 11);
   return [...base, d1, d2].join('');

@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { UsersModule } from './modules/users/users.module';
 import { SettingsModule } from './modules/settings/settings.module';
+import { CustomersModule } from './modules/customers/customers.module';
 
 const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 
@@ -58,6 +59,7 @@ const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     AuthModule,
     UsersModule,
     SettingsModule,
+    CustomersModule,
     HealthModule,
   ],
 })

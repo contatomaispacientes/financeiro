@@ -1,0 +1,8 @@
+{
+  "errors": [
+    {
+      "code": "invalid_value",
+      "description": "O valor da cobrança (R$ 1,00) menos o valor do desconto (R$ 0,00) não pode ser menor que R$ 5,00."
+    }
+  ]
+}

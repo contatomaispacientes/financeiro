@@ -1,14 +1,23 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { toCents } from '@financeiro/shared';
 import type { Env } from '../../config/env.schema';
 import { DomainException } from '../../common/filters/domain-exception.filter';
 import {
   ASAAS_BASE_URLS,
+  asaasPaymentBody,
+  type AsaasBillingType,
   type AsaasClient,
   type AsaasCustomer,
   type AsaasCustomerInput,
   type AsaasErrorCode,
+  type AsaasIdentificationField,
+  type AsaasPage,
+  type AsaasPayment,
+  type AsaasPaymentFilter,
+  type AsaasPaymentInput,
   type AsaasPingResult,
+  type AsaasPixQrCode,
 } from './asaas.client';
 
 const USER_AGENT = 'financeiro/0.1.0';
@@ -97,6 +106,47 @@ export class HttpAsaasClient implements AsaasClient {
     return this.request('PUT', `/customers/${encodeURIComponent(id)}`, input);
   }
 
+  async createPayment(input: AsaasPaymentInput): Promise<AsaasPayment> {
+    return toPayment(await this.request<RawPayment>('POST', '/payments', asaasPaymentBody(input)));
+  }
+
+  async getPayment(id: string): Promise<AsaasPayment> {
+    return toPayment(await this.request<RawPayment>('GET', `/payments/${encodeURIComponent(id)}`));
+  }
+
+  async listPayments(filter: AsaasPaymentFilter): Promise<AsaasPage<AsaasPayment>> {
+    const query = new URLSearchParams(
+      Object.entries(filter)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]): [string, string] => [key, String(value)]),
+    );
+    const page = await this.request<{ data: RawPayment[]; hasMore: boolean; totalCount: number }>(
+      'GET',
+      `/payments?${query.toString()}`,
+    );
+    return { data: page.data.map(toPayment), hasMore: page.hasMore, totalCount: page.totalCount };
+  }
+
+  async deletePayment(id: string): Promise<void> {
+    await this.request('DELETE', `/payments/${encodeURIComponent(id)}`);
+  }
+
+  async getPixQrCode(id: string): Promise<AsaasPixQrCode> {
+    const raw = await this.request<{ encodedImage: string; payload: string; expirationDate?: string | null }>(
+      'GET',
+      `/payments/${encodeURIComponent(id)}/pixQrCode`,
+    );
+    return { encodedImage: raw.encodedImage, payload: raw.payload, expirationDate: raw.expirationDate ?? null };
+  }
+
+  async getIdentificationField(id: string): Promise<AsaasIdentificationField> {
+    const raw = await this.request<{ identificationField: string; barCode: string }>(
+      'GET',
+      `/payments/${encodeURIComponent(id)}/identificationField`,
+    );
+    return { identificationField: raw.identificationField, barCode: raw.barCode };
+  }
+
   private async request<T>(method: Method, path: string, body?: unknown, retry = method !== 'POST'): Promise<T> {
     const delays = retry ? this.retryDelaysMs : [];
     for (let attempt = 0; ; attempt++) {
@@ -133,6 +183,47 @@ export class HttpAsaasClient implements AsaasClient {
     this.logger.warn(`Asaas ${method} ${path.split('?')[0]} → HTTP ${res.status} (${code})`);
     throw new AsaasError(code, code === 'ASAAS_UNAVAILABLE' || code === 'ASAAS_RATE_LIMITED', json);
   }
+}
+
+/** Cobrança como o Asaas devolve (valores em reais). */
+interface RawPayment {
+  id: string;
+  customer: string;
+  status: string;
+  billingType: AsaasBillingType;
+  value: number;
+  netValue?: number | null;
+  dueDate: string;
+  paymentDate?: string | null;
+  description?: string | null;
+  externalReference?: string | null;
+  installment?: string | null;
+  installmentNumber?: number | null;
+  subscription?: string | null;
+  invoiceUrl?: string | null;
+  bankSlipUrl?: string | null;
+  deleted?: boolean;
+}
+
+function toPayment(raw: RawPayment): AsaasPayment {
+  return {
+    id: raw.id,
+    customer: raw.customer,
+    status: raw.status,
+    billingType: raw.billingType,
+    valueCents: toCents(raw.value),
+    netValueCents: raw.netValue == null ? null : toCents(raw.netValue),
+    dueDate: raw.dueDate,
+    paymentDate: raw.paymentDate ?? null,
+    description: raw.description ?? null,
+    externalReference: raw.externalReference ?? null,
+    installment: raw.installment ?? null,
+    installmentNumber: raw.installmentNumber ?? null,
+    subscription: raw.subscription ?? null,
+    invoiceUrl: raw.invoiceUrl ?? null,
+    bankSlipUrl: raw.bankSlipUrl ?? null,
+    deleted: raw.deleted ?? false,
+  };
 }
 
 function safeJson(text: string): unknown {

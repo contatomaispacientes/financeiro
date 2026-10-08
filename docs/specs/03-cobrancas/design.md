@@ -108,8 +108,9 @@ O front usa a mesma função para o resumo em tempo real; a API recalcula sempre
 
 | Código | HTTP | Quando |
 | --- | --- | --- |
-| `CHARGE_PLAN_INVALID` | 400 | zod do plano (`details` = issues) |
+| `VALIDATION_ERROR` | 400 | zod do plano (`details` = issues) — código padrão do `ZodValidationPipe` (spec 00) |
 | `CUSTOMER_ARCHIVED` | 422 | COB-01.6 |
+| `CHARGE_TYPE_NOT_AVAILABLE` | 422 | parcelada/recorrente na prévia ou na criação enquanto a parte 2 (M3) não entra |
 | `CHARGE_TOTAL_ZERO` · `DISCOUNT_EXCEEDS_SUBTOTAL` · `DUE_DATE_IN_PAST` · `CHARGE_BELOW_MINIMUM` · `DUE_RULE_REQUIRES_SIGNATURE` · `END_DATE_BEFORE_FIRST_DUE` | 422 | COB-01.5, COB-03.4, COB-04.1, COB-12.3 |
 | `CHARGE_NOT_DRAFT` | 409 | retry/discard fora de DRAFT |
 | `CHARGE_NOT_CANCELABLE` | 409 | COB-08.3 |
@@ -154,3 +155,4 @@ Invalidações: criar/cancelar/estornar invalidam `['charges']`, `['charge', id]
 | --- | --- |
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Revisão: `rec_` no lugar de `sub_`, retry de recorrente sem duplicar (`listSubscriptions`), upsert na importação, retry com vencimento passado, evento `charge.created`/`charge.canceled`, validação de ciclo/data final |
+| 08/10/2026 | Implementação da parte 1 (tarefas 3–6): (a) `INSTALLMENT`/`RECURRING` recusados com `CHARGE_TYPE_NOT_AVAILABLE` (422) na prévia e na criação até as tarefas 8–9; (b) plano inválido no zod responde `VALIDATION_ERROR` (400), o código padrão da fundação, no lugar de `CHARGE_PLAN_INVALID`; (c) o evento `charge.created` ainda não é emitido — `@nestjs/event-emitter` não está no stack e o único consumidor é a régua (spec 08), que o adiciona; (d) avulsa usa `external_reference = "chg_<charges.id>"`; (e) os passos 3–5 rodam numa transação com `SELECT … FOR UPDATE` na cobrança: dois "Tentar de novo" simultâneos não duplicam e o webhook que chegar antes do espelho espera o commit; (f) o espelho grava `due_date` e `paid_at` da resposta do Asaas (o Asaas vence); (g) `fine`/`interest` só vão ao Asaas quando > 0; (h) `GET /charges/:id/payment-info` só consulta o Asaas para cobrança `PENDING`/`OVERDUE` — o QR Code (`pixQrCodeBase64`) não é gravado e é buscado a cada chamada; (i) `events` do detalhe em ordem decrescente de `received_at` (WHK-03.4), só `source = ASAAS`; (j) `POST /charges/:id/retry` com nova falha do Asaas responde **200** com o detalhe ainda em `DRAFT` e `lastError` (só `POST /charges` lança `ASAAS_*` com `details.chargeIds`); `DUE_DATE_IN_PAST` continua 422; (k) "Descartar" é só local e não consulta o Asaas: se um `POST /payments` deu timeout depois de gravar no Asaas, descartar deixa a cobrança órfã lá — preferir "Tentar de novo" nesse caso |

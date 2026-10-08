@@ -534,6 +534,7 @@ model ReminderLog {
 | `reminder_templates_uq` (único, `NULLS NOT DISTINCT`) | `20261007234521_reminder_templates_uq` | Declarado como `@@unique(..., map:)`; o Prisma não enxerga o `NULLS NOT DISTINCT`, mas não tenta recriar |
 | Extensões `unaccent` e `pg_trgm`; função imutável `public.f_unaccent(text)` | `20261008120000_customers_name_search` | Ignoradas pelo diff |
 | `customers_name_search_idx`: GIN trigram em `f_unaccent(lower(name))` (busca de clientes, CLI-NF1) | `20261008120000_customers_name_search` | Índice de expressão: ignorado pelo diff. A consulta precisa usar exatamente `public.f_unaccent(lower(name)) LIKE …` para aproveitá-lo |
+| `services_name_active_uq`: único parcial em `lower(name) WHERE active` (nome único entre serviços ativos, SRV-01.2) | `20261009100000_services_name_active_uq` | Índice de expressão: ignorado pelo diff. A violação chega como `P2002` e vira `SERVICE_DUPLICATE` |
 
 Regra: toda migration SQL manual precisa deixar `prisma migrate diff --from-config-datasource --to-schema` vazio — senão o próximo `migrate dev` gera `DROP` silencioso. O teste de integração `schema-drift.e2e-spec.ts` garante isso no CI.
 

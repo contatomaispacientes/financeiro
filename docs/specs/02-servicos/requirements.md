@@ -1,6 +1,6 @@
 # 02 — Serviços · Requisitos
 
-> Status: **Aprovado** · Prefixo: `SRV` · Depende de: 00 · Marco: M1
+> Status: **Implementado** · Prefixo: `SRV` · Depende de: 00 · Marco: M1
 
 ## Contexto
 

@@ -59,3 +59,4 @@ export const ServiceUpdateSchema = ServiceCreateSchema.partial();
 | --- | --- |
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Revisão: reativação com nome duplicado, `usageCount` por venda |
+| 08/10/2026 | Implementação: `search` busca em nome e descrição; a checagem de exclusão olha qualquer item (`charge_items`, inclusive de cobrança gerada por assinatura, e `subscription_items`) além de `contracts.charge_plan`, em vez de `usageCount > 0` — mesmo efeito, sem depender da regra de contagem |

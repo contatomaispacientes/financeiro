@@ -9,6 +9,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { AuditPage } from '@/features/audit/AuditPage';
 import { CustomersPage } from '@/features/customers/CustomersPage';
 import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
+import { ServicesPage } from '@/features/services/ServicesPage';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -33,7 +34,7 @@ export const routes: RouteObject[] = [
           { path: 'contratos', element: <PlaceholderPage title="Contratos" spec="07" /> },
           { path: 'clientes', element: <CustomersPage /> },
           { path: 'clientes/:id', element: <CustomerDetailPage /> },
-          { path: 'servicos', element: <PlaceholderPage title="Serviços" spec="02" /> },
+          { path: 'servicos', element: <ServicesPage /> },
           { path: 'despesas', element: <PlaceholderPage title="Contas a pagar" spec="05" /> },
           { path: 'configuracoes', element: <SettingsPage /> },
           {

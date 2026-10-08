@@ -12,6 +12,7 @@ import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 import { ServicesPage } from '@/features/services/ServicesPage';
 import { NewChargePage } from '@/features/charges/NewChargePage';
 import { ChargeDetailPage } from '@/features/charges/ChargeDetailPage';
+import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -38,7 +39,7 @@ export const routes: RouteObject[] = [
           { path: 'clientes', element: <CustomersPage /> },
           { path: 'clientes/:id', element: <CustomerDetailPage /> },
           { path: 'servicos', element: <ServicesPage /> },
-          { path: 'despesas', element: <PlaceholderPage title="Contas a pagar" spec="05" /> },
+          { path: 'despesas', element: <ExpensesPage /> },
           { path: 'configuracoes', element: <SettingsPage /> },
           {
             path: 'configuracoes',

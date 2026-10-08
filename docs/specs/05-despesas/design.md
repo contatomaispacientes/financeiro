@@ -93,3 +93,4 @@ export const RecurrenceCreateSchema = z.object({
 | --- | --- |
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Revisão: rota de exclusão de categoria (o erro `CATEGORY_IN_USE` não tinha rota) |
+| 08/10/2026 | Implementação (tarefas 1–3, 5, 6): anexos (tarefa 4, `StorageService`) ficam para depois. Situação "a pagar" no filtro = `OPEN` em dia (atrasada à parte); KPI "em aberto" inclui as atrasadas. Pagar/desfazer/cancelar com atualização condicional (sem duplo pagamento). `repeatMonthly` grava `last_generated_for` do mês. Categorias ganham `CATEGORY_DUPLICATE`; tela em Configurações › Categorias de despesa |

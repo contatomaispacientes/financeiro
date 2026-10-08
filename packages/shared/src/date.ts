@@ -58,6 +58,18 @@ export function toSaoPauloDate(instant: Date): string {
   }).format(instant);
 }
 
+/** Dia do mês ajustado ao último dia: clampDay('2027-02', 31) → '2027-02-28' (DSP-03.2). */
+export function clampDay(month: string, day: number): string {
+  const [y, m] = month.split('-').map(Number) as [number, number];
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  return `${month}-${String(Math.min(day, last)).padStart(2, '0')}`;
+}
+
+/** Mês ("YYYY-MM") de hoje em São Paulo. */
+export function currentMonthInSaoPaulo(): string {
+  return todayInSaoPaulo().slice(0, 7);
+}
+
 /** Soma dias a uma data pura ("YYYY-MM-DD"), sem fuso. */
 export function addDays(dateStr: string, days: number): string {
   const date = new Date(`${dateStr}T00:00:00Z`);

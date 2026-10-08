@@ -75,3 +75,14 @@ describe('isOverdue', () => {
     expect(isOverdue('2026-10-08')).toBe(false);
   });
 });
+
+import { clampDay } from '../date.js';
+
+describe('clampDay', () => {
+  it('[DSP-03.2] dia 29–31 em mês curto vira o último dia', () => {
+    expect(clampDay('2027-02', 31)).toBe('2027-02-28');
+    expect(clampDay('2028-02', 30)).toBe('2028-02-29');
+    expect(clampDay('2026-04', 31)).toBe('2026-04-30');
+    expect(clampDay('2026-10', 5)).toBe('2026-10-05');
+  });
+});

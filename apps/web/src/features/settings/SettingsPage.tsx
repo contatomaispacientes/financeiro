@@ -7,8 +7,9 @@ import { useSession } from '@/lib/auth';
 import { useSettings } from './api';
 import { GeneralSettingsForm } from './GeneralSettingsForm';
 import { IntegrationsPanel } from './IntegrationsPanel';
+import { CategoriesPanel } from '../expenses/CategoriesPanel';
 
-const TABS = ['geral', 'integracoes', 'regua'] as const;
+const TABS = ['geral', 'integracoes', 'categorias', 'regua'] as const;
 type Tab = (typeof TABS)[number];
 
 export function SettingsPage() {
@@ -19,7 +20,7 @@ export function SettingsPage() {
 
   const requested = params.get('aba') as Tab | null;
   const tab: Tab =
-    requested && TABS.includes(requested) && (requested !== 'integracoes' || isAdmin) ? requested : 'geral';
+    requested && TABS.includes(requested) && ((requested !== 'integracoes' && requested !== 'categorias') || isAdmin) ? requested : 'geral';
 
   return (
     <>
@@ -29,6 +30,7 @@ export function SettingsPage() {
         <TabsList>
           <TabsTrigger value="geral">Geral</TabsTrigger>
           {isAdmin && <TabsTrigger value="integracoes">Integrações</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="categorias">Categorias de despesa</TabsTrigger>}
           <TabsTrigger value="regua">Régua</TabsTrigger>
         </TabsList>
 
@@ -45,6 +47,12 @@ export function SettingsPage() {
         {isAdmin && (
           <TabsContent value="integracoes" className="mt-4">
             <IntegrationsPanel />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="categorias" className="mt-4">
+            <CategoriesPanel />
           </TabsContent>
         )}
 

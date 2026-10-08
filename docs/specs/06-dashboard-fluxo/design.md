@@ -99,3 +99,4 @@ type DashboardDto = {
 | --- | --- |
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Decisões do dono: previsto sem vencidas antigas, projeção de 3 meses (`projectMonth`), chargebacks e reversões (ADR-011), limite de `to` |
+| 08/10/2026 | Implementação (tarefas 1–8; a 9, desempenho com volume, fica pendente): `ReportsService` como calculator único (Prisma + `$queryRaw` para somas). "Vencido" do dashboard = `PENDING`/`OVERDUE` com vencimento antes de hoje. Alertas FLX-01.5 no topo da Visão geral. Taxa de inadimplência considera só o que já venceu (até ontem). CSV baixado pelo front com o token da sessão |

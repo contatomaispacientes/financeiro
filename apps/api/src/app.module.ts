@@ -13,6 +13,7 @@ import { SettingsModule } from './modules/settings/settings.module';
 import { CustomersModule } from './modules/customers/customers.module';
 import { ServicesModule } from './modules/services/services.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
+import { ReportsModule } from './modules/reports/reports.module';
 import { ChargesModule } from './modules/charges/charges.module';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PaymentEventsModule } from './modules/payment-events/payment-events.module';
@@ -67,6 +68,7 @@ const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     CustomersModule,
     ServicesModule,
     ExpensesModule,
+    ReportsModule,
     ChargesModule,
     WebhooksModule,
     PaymentEventsModule,

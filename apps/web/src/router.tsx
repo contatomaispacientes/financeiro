@@ -13,6 +13,8 @@ import { ServicesPage } from '@/features/services/ServicesPage';
 import { NewChargePage } from '@/features/charges/NewChargePage';
 import { ChargeDetailPage } from '@/features/charges/ChargeDetailPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
+import { DashboardPage } from '@/features/reports/DashboardPage';
+import { CashflowPage } from '@/features/reports/CashflowPage';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -22,8 +24,8 @@ export const routes: RouteObject[] = [
       {
         element: <AppLayout />,
         children: [
-          { index: true, element: <PlaceholderPage title="Visão geral" spec="06" /> },
-          { path: 'fluxo', element: <PlaceholderPage title="Fluxo de caixa" spec="06" /> },
+          { index: true, element: <DashboardPage /> },
+          { path: 'fluxo', element: <CashflowPage /> },
           {
             path: 'cobrancas/nova',
             element: (

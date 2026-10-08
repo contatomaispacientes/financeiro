@@ -1,6 +1,6 @@
 # 01 — Clientes · Requisitos
 
-> Status: **Aprovado** · Prefixo: `CLI` · Depende de: 00 · Marco: M1
+> Status: **Implementado** · Prefixo: `CLI` · Depende de: 00 · Marco: M1
 
 ## Contexto
 

@@ -4,6 +4,8 @@ import { ApiError } from './http';
 /** Erros de domínio que pertencem a um campo específico do formulário. */
 const FIELD_ERRORS: Record<string, string> = {
   EMAIL_IN_USE: 'email',
+  CUSTOMER_DUPLICATE: 'document',
+  CUSTOMER_DOCUMENT_LOCKED: 'document',
 };
 
 /**

@@ -1,8 +1,10 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   CustomerCreateSchema,
+  CustomerListQuerySchema,
   CustomerLookupQuerySchema,
+  type CustomerListQuery,
   CustomerUpdateSchema,
   Permission,
   type CustomerCreateInput,
@@ -19,6 +21,40 @@ import { CustomersService } from './customers.service';
 @Controller('customers')
 export class CustomersController {
   constructor(private readonly customers: CustomersService) {}
+
+  @Get()
+  @Roles(...Permission.VIEW_REPORTS)
+  @ApiOperation({ summary: 'Listar clientes com busca e totais (CLI-02)' })
+  list(
+    @Query(new ZodValidationPipe(CustomerListQuerySchema)) query: CustomerListQuery,
+    @CurrentUser('role') role: Role,
+  ) {
+    return this.customers.list(query, role);
+  }
+
+  @Post(':id/archive')
+  @HttpCode(200)
+  @Roles(...Permission.MANAGE_RECORDS)
+  @ApiOperation({ summary: 'Arquivar cliente (CLI-04.4)' })
+  archive(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtPayload) {
+    return this.customers.archive(id, actor);
+  }
+
+  @Post(':id/unarchive')
+  @HttpCode(200)
+  @Roles(...Permission.MANAGE_RECORDS)
+  @ApiOperation({ summary: 'Desarquivar cliente (CLI-04.5)' })
+  unarchive(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() actor: JwtPayload) {
+    return this.customers.unarchive(id, actor);
+  }
+
+  @Post(':id/asaas-sync')
+  @HttpCode(202)
+  @Roles(...Permission.MANAGE_RECORDS)
+  @ApiOperation({ summary: 'Reenviar os dados do cliente ao Asaas (CLI-04.2)' })
+  async asaasSync(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
+    await this.customers.requestAsaasSync(id);
+  }
 
   // Antes de ':id' para "lookup" não ser lido como id.
   @Get('lookup')

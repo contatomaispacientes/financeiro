@@ -15,6 +15,15 @@ export const customerDuplicate = (existing: { id: string; name: string; archived
     { customerId: existing.id, name: existing.name, archived: existing.archivedAt !== null },
   );
 
+/** CLI-04.4 */
+export const customerHasOpenItems = (counts: { charges: number; subscriptions: number; contracts: number }) =>
+  new DomainException(
+    'CUSTOMER_HAS_OPEN_ITEMS',
+    'Não dá para arquivar: há cobrança em aberto, assinatura ativa ou contrato em andamento',
+    HttpStatus.CONFLICT,
+    counts,
+  );
+
 export type DocumentLockReason = 'ASAAS_CUSTOMER' | 'CHARGES' | 'CONTRACTS';
 
 /** CLI-04.3 */

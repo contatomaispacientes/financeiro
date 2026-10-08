@@ -96,6 +96,21 @@ export function personTypeFromDocument(document: string): PersonType {
   return onlyDigits(document).length === 14 ? 'PJ' : 'PF';
 }
 
+export const CustomerListQuerySchema = z.object({
+  search: z.string().trim().max(100).optional(),
+  /** CLI-02.3: por padrão oculta arquivados; `true` mostra todos. */
+  archived: z.stringbool().default(false),
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20),
+});
+export type CustomerListQuery = z.infer<typeof CustomerListQuerySchema>;
+
+export type CustomerListItemDto = Pick<
+  CustomerDto,
+  'id' | 'name' | 'personType' | 'document' | 'email' | 'phone' | 'asaasCustomerId' | 'archivedAt'
+> &
+  CustomerTotals;
+
 export const CustomerLookupQuerySchema = z.object({
   document: z
     .string()

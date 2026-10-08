@@ -27,7 +27,7 @@ IDs: `<PREFIXO>-NN` para a história e `<PREFIXO>-NN.M` para cada critério. Tar
 | # | Módulo | Prefixo | requirements | design | tasks | Marco |
 | --- | --- | --- | --- | --- | --- | --- |
 | 00 | [Fundação](00-fundacao/) | FND | Aprovado | Aprovado | Aprovado | M0 |
-| 01 | [Clientes](01-clientes/) | CLI | Aprovado | Aprovado | Aprovado | M1 |
+| 01 | [Clientes](01-clientes/) | CLI | Implementado | Aprovado | Aprovado | M1 |
 | 02 | [Serviços](02-servicos/) | SRV | Aprovado | Aprovado | Aprovado | M1 |
 | 03 | [Cobranças](03-cobrancas/) | COB | Aprovado | Aprovado | Aprovado | M2–M3 |
 | 04 | [Webhook e reconciliação Asaas](04-webhook-asaas/) | WHK | Aprovado | Aprovado | Aprovado | M2 |

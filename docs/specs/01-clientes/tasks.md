@@ -13,21 +13,21 @@
   - Testes de integração.
   - _Requisitos: CLI-01.1–01.4, CLI-04.1, CLI-04.3, CLI-NF2_
 
-- [ ] 4. Lista com busca, agregados e mascaramento por papel
+- [x] 4. Lista com busca, agregados e mascaramento por papel
   - Query única com agregados; teste de desempenho simples com 5 mil clientes no seed de teste.
   - _Requisitos: CLI-02.1–02.4, CLI-NF1_
 
-- [ ] 5. Arquivar e desarquivar
+- [x] 5. Arquivar e desarquivar
   - _Requisitos: CLI-04.4, CLI-04.5_
 
-- [ ] 6. `AsaasClient`: customers (find, create, update) + `ensureAsaasCustomer` com advisory lock
+- [x] 6. `AsaasClient`: customers (find, create, update) + `ensureAsaasCustomer` com advisory lock
   - Fixtures reais do sandbox em `test/fixtures/asaas/customers/`.
   - Teste de concorrência (duas chamadas em paralelo → 1 POST).
   - _Requisitos: CLI-05.1, CLI-05.2_
 
-- [ ] 7. Sincronização de edição com o Asaas (fila `asaas-customer-sync`, sem `jobId` fixo — ADR-010)
+- [x] 7. Sincronização de edição com o Asaas (fila `asaas-customer-sync`, sem `jobId` fixo — ADR-010)
   - Teste: duas edições em sequência rápida → o último `PUT` leva os dados da segunda.
   - _Requisitos: CLI-04.2_
 
-- [ ] 8. Telas: lista, formulário, ficha (abas de cobranças/assinaturas/contratos vazias até as specs 03 e 07)
+- [x] 8. Telas: lista, formulário, ficha (abas de cobranças/assinaturas/contratos vazias até as specs 03 e 07)
   - _Requisitos: CLI-02, CLI-03.1, CLI-03.2, CLI-01_

@@ -7,6 +7,8 @@ import { LoginPage } from '@/features/auth/LoginPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { AuditPage } from '@/features/audit/AuditPage';
+import { CustomersPage } from '@/features/customers/CustomersPage';
+import { CustomerDetailPage } from '@/features/customers/CustomerDetailPage';
 
 export const routes: RouteObject[] = [
   { path: '/login', element: <LoginPage /> },
@@ -29,7 +31,8 @@ export const routes: RouteObject[] = [
           { path: 'cobrancas', element: <PlaceholderPage title="Cobranças" spec="03" /> },
           { path: 'assinaturas', element: <PlaceholderPage title="Recorrências" spec="03" /> },
           { path: 'contratos', element: <PlaceholderPage title="Contratos" spec="07" /> },
-          { path: 'clientes', element: <PlaceholderPage title="Clientes" spec="01" /> },
+          { path: 'clientes', element: <CustomersPage /> },
+          { path: 'clientes/:id', element: <CustomerDetailPage /> },
           { path: 'servicos', element: <PlaceholderPage title="Serviços" spec="02" /> },
           { path: 'despesas', element: <PlaceholderPage title="Contas a pagar" spec="05" /> },
           { path: 'configuracoes', element: <SettingsPage /> },

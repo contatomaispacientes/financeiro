@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { LoaderCircle } from 'lucide-react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { LoaderCircle, Mail } from 'lucide-react';
 import { can, type ChargeDetailDto } from '@financeiro/shared';
 import { MoneyInput } from '@/components/money-input';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { post } from '@/lib/api';
 import { useSession } from '@/lib/auth';
 import { errorMessage } from '@/lib/form-errors';
 import { formatBRL } from '@/lib/format';
@@ -24,12 +26,32 @@ const REFUNDABLE = ['PAID', 'CONFIRMED', 'PARTIALLY_REFUNDED'];
 export function ChargeActions({ charge }: { charge: ChargeDetailDto }) {
   const { user } = useSession();
   const [dialog, setDialog] = useState<'cancel' | 'refund' | null>(null);
+  const queryClient = useQueryClient();
   const canCancel = can(user?.role, 'MANAGE_CHARGES') && OPEN.includes(charge.status);
   const canRefund = can(user?.role, 'REFUND_CHARGE') && REFUNDABLE.includes(charge.status) && !!charge.asaasPaymentId;
+  const send = useMutation({
+    mutationFn: () => post<{ sentAt: string }>(`/charges/${charge.id}/send`, { channel: 'EMAIL' }),
+    onSuccess: () => {
+      toast.success(`E-mail enviado para ${charge.customer.email}.`);
+      return queryClient.invalidateQueries({ queryKey: ['reminders'] });
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
   if (!canCancel && !canRefund) return null;
 
   return (
     <div className="flex flex-wrap gap-2">
+      {canCancel && (
+        <Button
+          variant="outline"
+          onClick={() => send.mutate()}
+          disabled={!charge.customer.email || send.isPending}
+          title={charge.customer.email ? undefined : 'O cliente não tem e-mail cadastrado'}
+        >
+          {send.isPending ? <LoaderCircle aria-hidden className="animate-spin" /> : <Mail aria-hidden />}
+          Enviar ao cliente
+        </Button>
+      )}
       {canCancel && (
         <Button variant="outline" onClick={() => setDialog('cancel')}>
           Cancelar cobrança

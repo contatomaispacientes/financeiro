@@ -11,3 +11,4 @@ export * from './reports.js';
 export * from './webhook-events.js';
 export * from './charges.js';
 export * from './contract.js';
+export * from './reminders.js';

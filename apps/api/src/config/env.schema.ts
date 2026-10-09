@@ -41,6 +41,7 @@ export const envSchema = z.object({
   S3_SECRET_KEY: z.string().optional(),
 
   // Mail
+  // Vazio = e-mail desligado; "json" = não envia, só registra (testes/demonstração)
   SMTP_HOST: z.string().default('localhost'),
   SMTP_PORT: z.coerce.number().int().positive().default(1025),
   SMTP_USER: z.string().optional(),

@@ -15,6 +15,7 @@ import { displayDocument } from '@/features/customers/CustomersPage';
 import { useCharge, useChargeAction } from './api';
 import { billingTypeLabels, chargeTypeLabel, cycleLabels, eventLabel, eventNote, originLabels } from './labels';
 import { ChargeActions } from './ChargeActions';
+import { ChargeReminders } from '../reminders/ChargeReminders';
 import { MockSimulator } from './MockSimulator';
 import { PaymentData } from './PaymentData';
 
@@ -241,6 +242,8 @@ export function ChargeDetailPage() {
           <Card title="Dados para pagamento">
             <PaymentData charge={c} />
           </Card>
+
+          <ChargeReminders chargeId={c.id} />
 
           <section aria-labelledby="charge-events">
             <h2 id="charge-events" className="mb-2 text-sm font-medium">

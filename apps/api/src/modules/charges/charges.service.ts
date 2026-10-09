@@ -38,6 +38,7 @@ import { CustomersService } from '../customers/customers.service';
 import { customerNotFound } from '../customers/customers.errors';
 import { toDateOnly } from '../customers/customers.mapper';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { ReminderEnqueuer } from '../reminders/reminder-enqueuer';
 import {
   asaasCreateFailed,
   chargeNotCancelable,
@@ -85,6 +86,7 @@ export class ChargesService {
     private readonly audit: AuditService,
     private readonly customers: CustomersService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly reminders: ReminderEnqueuer,
     @Inject(ASAAS_CLIENT) private readonly asaas: AsaasClient,
     config: ConfigService<Env, true>,
   ) {
@@ -342,6 +344,7 @@ export class ChargesService {
         );
       });
       canceled.push(target.id);
+      this.reminders.forEvent(target.id, 'CANCELED'); // REG-04.3
     }
     return Promise.all(canceled.map((cid) => this.get(cid, actor.role)));
   }
@@ -502,6 +505,7 @@ export class ChargesService {
     }
     if (outcome === 'PUSHED') {
       await this.completePaymentData(await this.prisma.charge.findUniqueOrThrow({ where: { id: chargeId } }), false);
+      this.reminders.forEvent(chargeId, 'CREATED'); // REG-04.2
     }
     return null;
   }
@@ -581,6 +585,7 @@ export class ChargesService {
     if (outcome === 'PUSHED') {
       for (const charge of await this.prisma.charge.findMany({ where: { groupKey } })) {
         if (charge.asaasPaymentId) await this.completePaymentData(charge, false);
+        this.reminders.forEvent(charge.id, 'CREATED');
       }
     }
     return null;

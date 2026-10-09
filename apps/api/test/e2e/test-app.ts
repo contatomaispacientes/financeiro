@@ -26,6 +26,7 @@ export async function createTestApp(env: Record<string, string> = {}): Promise<I
     ASAAS_ENV: 'sandbox',
     ASAAS_API_KEY: 'test-key',
     ASAAS_WEBHOOK_TOKEN: 'webhook-token-for-tests-only-0123456789',
+    SMTP_HOST: 'json',
     ...env,
   });
 

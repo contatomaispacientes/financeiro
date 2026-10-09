@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../src/generated/prisma/client.js';
 import * as argon2 from 'argon2';
+import { DEFAULT_REMINDER_TEMPLATES, REMINDER_KINDS } from '@financeiro/shared';
 
 const adapter = new PrismaPg({
   connectionString: process.env['DATABASE_URL']!,
@@ -132,24 +133,16 @@ async function main() {
     console.log('  ✓ Contract template (fake)');
   }
 
-  // 7. Reminder templates (default)
-  const reminderTemplates = [
-    { kind: 'CREATED' as const, channel: 'EMAIL' as const, subject: 'Nova cobrança emitida', body: 'Olá {{nome}}, uma cobrança de {{valor}} com vencimento em {{vencimento}} foi emitida. Acesse: {{link}}', active: true },
-    { kind: 'BEFORE_DUE' as const, channel: 'EMAIL' as const, offsetDays: -3, subject: 'Lembrete: cobrança vence em breve', body: 'Olá {{nome}}, sua cobrança de {{valor}} vence em {{vencimento}}. Acesse: {{link}}', active: true },
-    { kind: 'ON_DUE' as const, channel: 'EMAIL' as const, subject: 'Cobrança vence hoje', body: 'Olá {{nome}}, sua cobrança de {{valor}} vence hoje. Acesse: {{link}}', active: true },
-    { kind: 'AFTER_DUE' as const, channel: 'EMAIL' as const, offsetDays: 1, subject: 'Cobrança vencida', body: 'Olá {{nome}}, sua cobrança de {{valor}} venceu em {{vencimento}}. Regularize: {{link}}', active: true },
-    { kind: 'AFTER_DUE' as const, channel: 'EMAIL' as const, offsetDays: 7, subject: 'Cobrança vencida há 7 dias', body: 'Olá {{nome}}, sua cobrança de {{valor}} venceu em {{vencimento}} e segue em aberto. Regularize: {{link}}', active: true },
-    { kind: 'MANUAL' as const, channel: 'EMAIL' as const, subject: 'Informação sobre sua cobrança', body: 'Olá {{nome}}, segue o link da sua cobrança de {{valor}}: {{link}}', active: true },
-    { kind: 'PAID' as const, channel: 'EMAIL' as const, subject: 'Pagamento confirmado', body: 'Olá {{nome}}, recebemos o pagamento de {{valor}}. Obrigado!', active: false },
-    { kind: 'REFUNDED' as const, channel: 'EMAIL' as const, subject: 'Estorno realizado', body: 'Olá {{nome}}, o estorno de {{valor}} foi realizado.', active: false },
-    { kind: 'CANCELED' as const, channel: 'EMAIL' as const, subject: 'Cobrança cancelada', body: 'Olá {{nome}}, a cobrança de {{valor}} foi cancelada.', active: false },
-  ];
-  for (const tpl of reminderTemplates) {
-    const exists = await prisma.reminderTemplate.findFirst({
-      where: { kind: tpl.kind, channel: tpl.channel, offsetDays: tpl.offsetDays ?? null },
-    });
+  // 7. Mensagens da régua (REG-08.5): uma geral por tipo, com os textos padrão do shared.
+  // Linhas antigas com a sintaxe {{…}} (fora do catálogo) são trocadas pelo padrão.
+  await prisma.reminderTemplate.deleteMany({ where: { offsetDays: { not: null }, body: { contains: '{{' } } });
+  for (const kind of REMINDER_KINDS) {
+    const d = DEFAULT_REMINDER_TEMPLATES[kind];
+    const exists = await prisma.reminderTemplate.findFirst({ where: { kind, channel: 'EMAIL', offsetDays: null } });
     if (!exists) {
-      await prisma.reminderTemplate.create({ data: tpl });
+      await prisma.reminderTemplate.create({ data: { kind, channel: 'EMAIL', subject: d.subject, body: d.body, active: d.active } });
+    } else if (exists.body.includes('{{')) {
+      await prisma.reminderTemplate.update({ where: { id: exists.id }, data: { subject: d.subject, body: d.body } });
     }
   }
   console.log('  ✓ Reminder templates');

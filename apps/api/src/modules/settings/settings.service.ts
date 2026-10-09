@@ -1,4 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import type { Queue } from 'bullmq';
+import { ASAAS_CUSTOMER_SYNC_QUEUE } from '../customers/asaas-customer-sync.processor';
 import { ConfigService } from '@nestjs/config';
 import type {
   ConnectionTestResult,
@@ -64,6 +67,7 @@ export class SettingsService {
     private readonly audit: AuditService,
     private readonly config: ConfigService<Env, true>,
     @Inject(ASAAS_CLIENT) private readonly asaas: AsaasClient,
+    @InjectQueue(ASAAS_CUSTOMER_SYNC_QUEUE) private readonly customerSync: Queue,
   ) {}
 
   async get(): Promise<SettingsDto> {
@@ -71,13 +75,15 @@ export class SettingsService {
   }
 
   async update(input: SettingsUpdateInput, actorId: string): Promise<SettingsDto> {
-    return this.prisma.$transaction(async (tx) => {
+    let asaasChannelChanged = false;
+    const result = await this.prisma.$transaction(async (tx) => {
       await this.ensureRow(tx);
       // Trava a linha: dois PATCH simultâneos geram dois registros de auditoria coerentes.
       await tx.$queryRaw`SELECT id FROM settings WHERE id = ${SETTINGS_ID} FOR UPDATE`;
       const before = toDto(await tx.settings.findUniqueOrThrow({ where: { id: SETTINGS_ID } }));
       const after = toDto(await tx.settings.update({ where: { id: SETTINGS_ID }, data: input }));
 
+      asaasChannelChanged = before.reminderChannels.includes('ASAAS') !== after.reminderChannels.includes('ASAAS');
       const diff = auditDiff(before, after, AUDITED_FIELDS);
       if (diff) {
         await this.audit.record(
@@ -93,6 +99,16 @@ export class SettingsService {
       }
       return after;
     });
+    if (asaasChannelChanged) await this.resyncAsaasNotifications();
+    return result;
+  }
+
+  /** REG-02.2: canal ASAAS ligado/desligado → cada cliente já no Asaas recebe o novo notificationDisabled. */
+  private async resyncAsaasNotifications() {
+    const customers = await this.prisma.customer.findMany({ where: { asaasCustomerId: { not: null } }, select: { id: true } });
+    await this.customerSync.addBulk(
+      customers.map((c) => ({ name: 'sync', data: { customerId: c.id }, opts: { attempts: 5, backoff: { type: 'exponential', delay: 2_000 } } })),
+    );
   }
 
   environment(): EnvironmentDto {

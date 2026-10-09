@@ -20,6 +20,7 @@ import {
 } from './asaas-payment';
 import { refundValueUnknown, resourceNotYetKnown } from './payment-events.errors';
 import { importSubscriptionPayment, type ImportablePayment } from '../subscriptions/subscription-import';
+import { ReminderEnqueuer } from '../reminders/reminder-enqueuer';
 
 export type EventResult = 'APPLIED' | 'IMPORTED' | 'IGNORED' | 'IGNORED_TRANSITION' | 'UNKNOWN_RESOURCE';
 
@@ -34,7 +35,10 @@ interface LedgerEntry {
 /** Aplica um `webhook_events` de cobrança no espelho local (spec 04, design › Processamento). */
 @Injectable()
 export class PaymentEventProcessor {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly reminders: ReminderEnqueuer,
+  ) {}
 
   /** `lastAttempt`: na última tentativa não adia mais — evento sem cobrança vira `UNKNOWN_RESOURCE`. */
   async apply(webhookEventId: string, { lastAttempt = true }: { lastAttempt?: boolean } = {}): Promise<EventResult | null> {
@@ -61,7 +65,10 @@ export class PaymentEventProcessor {
     // COB-04.3: cobrança nova de uma assinatura nossa entra já com o status atual do Asaas.
     if (!chargeId && payment.subscription) {
       const imported = await importSubscriptionPayment(this.prisma, toImportable(payment, payment.subscription));
-      if (imported) return this.finish(this.prisma, evt.id, imported.imported ? 'IMPORTED' : 'APPLIED');
+      if (imported) {
+        if (imported.imported) this.reminders.forEvent(imported.chargeId, 'CREATED'); // REG-04.2
+        return this.finish(this.prisma, evt.id, imported.imported ? 'IMPORTED' : 'APPLIED');
+      }
     }
     if (!chargeId) {
       if (mayBeCreating) throw resourceNotYetKnown();
@@ -69,7 +76,8 @@ export class PaymentEventProcessor {
     }
 
     const at = eventInstant(body.dateCreated, evt.receivedAt);
-    return this.prisma.$transaction(async (tx) => {
+    let changed: { from: ChargeStatus; to: ChargeStatus } | null = null;
+    const result = await this.prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM charges WHERE id = ${chargeId}::uuid FOR UPDATE`;
       const charge = await tx.charge.findUniqueOrThrow({ where: { id: chargeId } });
       // Rascunho = a criação ainda não gravou a resposta do Asaas (Tx 2); não disputar com ela.
@@ -78,6 +86,7 @@ export class PaymentEventProcessor {
       const transition = nextChargeStatus(charge.status, evt.event, payment.status);
       if (transition.kind !== 'APPLY') return this.finish(tx, evt.id, 'IGNORED_TRANSITION');
 
+      changed = { from: charge.status, to: transition.status };
       const entry = ledgerEntry(charge, transition.status, evt.event, payment);
       await tx.charge.update({
         where: { id: charge.id },
@@ -96,6 +105,15 @@ export class PaymentEventProcessor {
       }
       return this.finish(tx, evt.id, 'APPLIED');
     });
+    if (changed) this.notify(chargeId, changed);
+    return result;
+  }
+
+  /** REG-04.3: paga, estornada ou cancelada (uma vez por cobrança/tipo/canal — a unicidade fica na régua). */
+  private notify(chargeId: string, { from, to }: { from: ChargeStatus; to: ChargeStatus }) {
+    if ((to === 'PAID' || to === 'CONFIRMED') && from !== 'PAID' && from !== 'CONFIRMED') this.reminders.forEvent(chargeId, 'PAID');
+    else if (to === 'REFUNDED' || to === 'PARTIALLY_REFUNDED') this.reminders.forEvent(chargeId, 'REFUNDED');
+    else if (to === 'CANCELED' && from !== 'CANCELED') this.reminders.forEvent(chargeId, 'CANCELED');
   }
 
   /** WHK-02.2: id do Asaas → externalReference → parcela (grupo ou parcelamento + número). */

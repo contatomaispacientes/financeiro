@@ -24,6 +24,7 @@ import {
 } from '../charges/charges.errors';
 import { fromDateOnly, toSubscriptionDetailDto, toSubscriptionListItemDto } from '../charges/charges.mapper';
 import { importSubscriptionPayment } from './subscription-import';
+import { ReminderEnqueuer } from '../reminders/reminder-enqueuer';
 
 const listInclude = { customer: { select: { id: true, name: true } } } as const;
 const chargeListInclude = {
@@ -39,6 +40,7 @@ export class SubscriptionsService {
     private readonly audit: AuditService,
     private readonly customers: CustomersService,
     @Inject(ASAAS_CLIENT) private readonly asaas: AsaasClient,
+    private readonly reminders: ReminderEnqueuer,
   ) {}
 
   /** Passo 2 do design (RECURRING): rascunho local, sem `asaas_subscription_id` até o Asaas aceitar. */
@@ -143,7 +145,7 @@ export class SubscriptionsService {
   private async importCharges(asaasSubscriptionId: string) {
     const page = await this.asaas.listPayments({ subscription: asaasSubscriptionId, limit: 100 });
     for (const p of page.data) {
-      await importSubscriptionPayment(this.prisma, {
+      const result = await importSubscriptionPayment(this.prisma, {
         id: p.id,
         subscription: asaasSubscriptionId,
         status: p.status,
@@ -156,6 +158,7 @@ export class SubscriptionsService {
         bankSlipUrl: p.bankSlipUrl,
         deleted: p.deleted,
       });
+      if (result?.imported) this.reminders.forEvent(result.chargeId, 'CREATED');
     }
   }
 

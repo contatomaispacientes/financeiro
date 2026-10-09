@@ -20,6 +20,9 @@ import { PaymentEventsModule } from './modules/payment-events/payment-events.mod
 import { AsaasMockModule } from './modules/asaas-mock/asaas-mock.module';
 import { StorageModule } from './integrations/storage/storage.module';
 import { ContractsModule } from './modules/contracts/contracts.module';
+import { MailModule } from './integrations/mail/mail.module';
+import { RemindersModule } from './modules/reminders/reminders.module';
+import { ReminderQueueModule } from './modules/reminders/reminder-enqueuer';
 
 const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 
@@ -65,6 +68,8 @@ const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     PrismaModule,
     QueuesModule,
     StorageModule,
+    MailModule,
+    ReminderQueueModule,
     AuditModule,
     AuthModule,
     UsersModule,
@@ -78,6 +83,7 @@ const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     PaymentEventsModule,
     AsaasMockModule,
     ContractsModule,
+    RemindersModule,
     HealthModule,
   ],
 })

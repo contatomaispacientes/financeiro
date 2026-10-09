@@ -8,8 +8,11 @@ import { useSettings } from './api';
 import { GeneralSettingsForm } from './GeneralSettingsForm';
 import { IntegrationsPanel } from './IntegrationsPanel';
 import { CategoriesPanel } from '../expenses/CategoriesPanel';
+import { MessagesPanel } from '../reminders/MessagesPanel';
+import { ReminderSettingsPanel } from '../reminders/ReminderSettingsPanel';
 
-const TABS = ['geral', 'integracoes', 'categorias', 'regua'] as const;
+const TABS = ['geral', 'integracoes', 'categorias', 'regua', 'mensagens'] as const;
+const ADMIN_TABS: Tab[] = ['integracoes', 'categorias', 'regua', 'mensagens'];
 type Tab = (typeof TABS)[number];
 
 export function SettingsPage() {
@@ -20,18 +23,19 @@ export function SettingsPage() {
 
   const requested = params.get('aba') as Tab | null;
   const tab: Tab =
-    requested && TABS.includes(requested) && ((requested !== 'integracoes' && requested !== 'categorias') || isAdmin) ? requested : 'geral';
+    requested && TABS.includes(requested) && (!ADMIN_TABS.includes(requested) || isAdmin) ? requested : 'geral';
 
   return (
     <>
-      <PageHeader title="Configurações" description="Padrões financeiros, dados da empresa e integrações." />
+      <PageHeader title="Configurações" description="Padrões financeiros, dados da empresa, integrações e régua de cobrança." />
 
       <Tabs value={tab} onValueChange={(value) => setParams(value === 'geral' ? {} : { aba: value }, { replace: true })}>
         <TabsList>
           <TabsTrigger value="geral">Geral</TabsTrigger>
           {isAdmin && <TabsTrigger value="integracoes">Integrações</TabsTrigger>}
           {isAdmin && <TabsTrigger value="categorias">Categorias de despesa</TabsTrigger>}
-          <TabsTrigger value="regua">Régua</TabsTrigger>
+          {isAdmin && <TabsTrigger value="regua">Régua</TabsTrigger>}
+          {isAdmin && <TabsTrigger value="mensagens">Mensagens</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="geral" className="mt-4">
@@ -56,14 +60,17 @@ export function SettingsPage() {
           </TabsContent>
         )}
 
-        <TabsContent value="regua" className="mt-4">
-          <div className="rounded-lg border border-dashed bg-card px-6 py-12 text-center">
-            <p className="font-medium">Régua de cobrança</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Dias de lembrete antes e depois do vencimento, canais e mensagens chegam com a spec 08.
-            </p>
-          </div>
-        </TabsContent>
+        {isAdmin && settings.data && (
+          <TabsContent value="regua" className="mt-4">
+            <ReminderSettingsPanel settings={settings.data} />
+          </TabsContent>
+        )}
+
+        {isAdmin && (
+          <TabsContent value="mensagens" className="mt-4">
+            <MessagesPanel />
+          </TabsContent>
+        )}
       </Tabs>
     </>
   );

@@ -1,0 +1,76 @@
+# Deploy automático na VPS (ADR-015): roda só depois que o CI passa num push na main.
+# Workflow separado do CI para um push novo não cancelar um deploy no meio (o CI usa cancel-in-progress).
+# Segredos do repositório: VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_PATH (e VPS_PORT, opcional, padrão 22).
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  # Botão "Run workflow" na aba Actions, para reimplantar a main sem novo commit.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Um deploy por vez, na ordem dos pushes; nunca cancela um que já começou.
+concurrency:
+  group: deploy-producao
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Atualizar a VPS
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+    steps:
+      - name: Preparar a chave SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$VPS_PORT" -H "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Atualizar o código, reconstruir e esperar a API ficar saudável
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_PORT: ${{ secrets.VPS_PORT || '22' }}
+          VPS_PATH: ${{ secrets.VPS_PATH }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$VPS_PORT" "$VPS_USER@$VPS_HOST" bash -s -- "$VPS_PATH" "$SHA" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          # Só avança (fast-forward): se a VPS tiver alteração local no código, o deploy para em vez de apagá-la.
+          # Commit já incluído no que está rodando (deploy fora de ordem) vira no-op.
+          git fetch --quiet origin main
+          git merge --ff-only "$2"
+          echo "Código em $(git rev-parse --short HEAD)"
+
+          C="docker compose -f docker-compose.prod.yml"
+          $C up -d --build --remove-orphans
+
+          # As migrations rodam ao subir a API; espera o healthcheck dela (até 3 min).
+          for i in $(seq 1 36); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' "$($C ps -q api)" 2>/dev/null || echo starting)
+            [ "$status" = healthy ] && break
+            sleep 5
+          done
+          if [ "$status" != healthy ]; then
+            echo "API não ficou saudável ($status). Últimos logs:"
+            $C logs --tail 80 api
+            exit 1
+          fi
+          echo "API saudável."
+
+          # Imagens antigas de builds anteriores ocupam disco rápido.
+          docker image prune -f > /dev/null
+          REMOTE

@@ -66,9 +66,36 @@ Abra `https://<DOMAIN>`, entre com o admin e, em **Configurações › Geral**, 
 
 ## 4. Operação
 
+### Deploy automático (push na main → VPS)
+
+O workflow [.github/workflows/deploy.yml](../.github/workflows/deploy.yml) roda quando o CI passa num push na `main`: entra na VPS por SSH, avança o código (`git merge --ff-only`), reconstrói e espera a API ficar saudável. Se o CI falhar, nada vai para a VPS. Para reimplantar sem commit novo: aba *Actions › Deploy › Run workflow*.
+
+Configuração (uma vez):
+
+1. Na VPS, crie uma chave só para o deploy e autorize-a:
+   ```bash
+   ssh-keygen -t ed25519 -f ~/.ssh/deploy_github -N "" -C "deploy-github"
+   cat ~/.ssh/deploy_github.pub >> ~/.ssh/authorized_keys
+   cat ~/.ssh/deploy_github        # copie tudo, inclusive as linhas BEGIN/END
+   ```
+2. No GitHub, *Settings › Secrets and variables › Actions › New repository secret*:
+
+   | Segredo | Valor |
+   | --- | --- |
+   | `VPS_HOST` | IP da VPS |
+   | `VPS_USER` | usuário do SSH (ex.: `root`) |
+   | `VPS_SSH_KEY` | a chave privada do passo 1 |
+   | `VPS_PATH` | pasta do projeto na VPS (ex.: `/root/financeiro`; confira com `pwd` dentro dela) |
+   | `VPS_PORT` | só se o SSH não for na porta 22 |
+
+3. O `git pull` na VPS precisa funcionar sem senha: se o repositório é privado, o clone deve ter sido feito com token na URL ou deploy key (passo 1.4). Teste com `git fetch` na pasta do projeto.
+4. Não edite arquivos versionados direto na VPS: o deploy só avança o código e para com erro se houver alteração local (o `.env` e os backups não contam, ficam fora do git).
+
+Se um deploy falhar: erro no **build** → a versão anterior continua no ar; a API nova **sobe mas não fica saudável** → o job falha e mostra os últimos logs da API na aba *Actions*. Corrija e faça novo push, ou volte a versão com `git revert` + push.
+
 | Tarefa | Comando |
 | --- | --- |
-| Atualizar para a versão nova | `git pull && docker compose -f docker-compose.prod.yml up -d --build` |
+| Atualizar à mão (sem esperar o CI) | `git pull && docker compose -f docker-compose.prod.yml up -d --build` |
 | Logs da API | `docker compose -f docker-compose.prod.yml logs -f api` |
 | Reiniciar | `docker compose -f docker-compose.prod.yml restart api` |
 | Backup manual agora | `docker compose -f docker-compose.prod.yml exec backup pg_dump -Fc -f /backups/financeiro-manual.dump` |

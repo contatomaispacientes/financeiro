@@ -42,9 +42,30 @@ async function main() {
   }
   const today = todayInSaoPaulo();
   const month = today.slice(0, 7);
+  // Em produção o seed principal não cria exemplos: a demonstração traz os seus (CPFs/CNPJs fictícios válidos).
+  if (!(await prisma.service.count({ where: { active: true } }))) {
+    await prisma.service.createMany({
+      data: [
+        { name: 'Consultoria Financeira', defaultPriceCents: 50_000 },
+        { name: 'Planejamento Tributário', defaultPriceCents: 80_000 },
+        { name: 'Gestão de Cobranças', defaultPriceCents: 30_000 },
+        { name: 'Assessoria Contábil', defaultPriceCents: 120_000 },
+      ],
+    });
+  }
+  if (!(await prisma.customer.count({ where: { archivedAt: null } }))) {
+    const address = { postalCode: '01310100', street: 'Av. Paulista', number: '1000', district: 'Bela Vista', city: 'São Paulo', state: 'SP' };
+    await prisma.customer.createMany({
+      data: [
+        { name: 'Maria Silva (exemplo)', personType: 'PF', document: '52998224725', email: 'maria@example.com', phone: '11999990001', address },
+        { name: 'João Santos (exemplo)', personType: 'PF', document: '87748248800', email: 'joao@example.com', phone: '11999990002', address },
+        { name: 'Tech Solutions Ltda (exemplo)', personType: 'PJ', document: '11222333000181', email: 'contato@techsol.example.com', phone: '11999990004', address },
+        { name: 'Comércio Rápido ME (exemplo)', personType: 'PJ', document: '33025941000125', email: 'financeiro@comercio.example.com', phone: '11999990005', address },
+      ],
+    });
+  }
   const customers = await prisma.customer.findMany({ where: { archivedAt: null }, take: 6, orderBy: { name: 'asc' } });
   const services = await prisma.service.findMany({ where: { active: true }, take: 6 });
-  if (!customers.length || !services.length) throw new Error('Rode antes o seed principal (pnpm db:seed).');
 
   let n = 0;
   async function charge(status: 'PAID' | 'PENDING' | 'OVERDUE' | 'CONFIRMED', due: string, paidAt: string | null) {
@@ -58,8 +79,8 @@ async function main() {
       data: {
         customerId: customer.id, type: 'SINGLE', status, billingType: n % 2 ? 'PIX' : 'BOLETO',
         valueCents: value, netValueCents: paid ? value - 199 : null, dueDate: d(due), paidAt: paidAt ? d(paidAt) : null,
-        description: `${service.name} (${qty}x)`, externalReference: `demo_${randomUUID()}`, asaasPaymentId: `pay_demo${randomUUID().slice(0, 12)}`,
-        invoiceUrl: 'https://sandbox.asaas.com/i/demo', finePct: 2, interestPct: 1,
+        description: `${service.name} (${qty}x)`, externalReference: `demo_${randomUUID()}`,
+        finePct: 2, interestPct: 1, // sem id do Asaas: a reconciliação diária não tenta conferir dados de exemplo
         items: { create: { serviceId: service.id, description: service.name, quantity: qty, unitPriceCents: service.defaultPriceCents, totalCents: value } },
       },
     });
@@ -74,7 +95,8 @@ async function main() {
   await charge('PAID', addDays(today, -3), addDays(today, -2));
   await charge('CONFIRMED', addDays(today, -1), addDays(today, -1));
   for (const offset of [2, 6, 10, 15]) await charge('PENDING', addDays(today, offset), null);
-  const overdue = await charge('OVERDUE', addDays(today, -8), null);
+  await charge('OVERDUE', addDays(today, -8), null);
+  const demoPaymentId = 'pay_demo_exemplo';
 
   // Despesas: categorias do seed principal.
   const cats = Object.fromEntries((await prisma.expenseCategory.findMany()).map((c) => [c.name, c.id]));
@@ -105,7 +127,7 @@ async function main() {
 
   // Eventos do Asaas (log): um aplicado, um ignorado e um com erro para testar "Reprocessar".
   const ev = (event: string, data: object) =>
-    prisma.webhookEvent.create({ data: { source: 'ASAAS', externalEventId: `evt_demo_${randomUUID()}`, event, resourceId: overdue.asaasPaymentId, payload: { event, payment: { id: overdue.asaasPaymentId } }, ...data } });
+    prisma.webhookEvent.create({ data: { source: 'ASAAS', externalEventId: `evt_demo_${randomUUID()}`, event, resourceId: demoPaymentId, payload: { event, payment: { id: demoPaymentId } }, ...data } });
   await ev('PAYMENT_CREATED', { processedAt: new Date(), result: 'APPLIED', attempts: 1 });
   await ev('PAYMENT_OVERDUE', { processedAt: new Date(), result: 'APPLIED', attempts: 1 });
   await ev('PAYMENT_BANK_SLIP_VIEWED', { processedAt: new Date(), result: 'IGNORED', attempts: 1 });

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { LoaderCircle, Mail } from 'lucide-react';
+import { LoaderCircle, Mail, RefreshCw } from 'lucide-react';
 import { can, type ChargeDetailDto } from '@financeiro/shared';
 import { MoneyInput } from '@/components/money-input';
 import { Button } from '@/components/ui/button';
@@ -37,10 +37,26 @@ export function ChargeActions({ charge }: { charge: ChargeDetailDto }) {
     },
     onError: (e) => toast.error(errorMessage(e)),
   });
-  if (!canCancel && !canRefund) return null;
+  const canSync = can(user?.role, 'MANAGE_CHARGES') && !!charge.asaasPaymentId;
+  // COB-07.2: confere a cobrança no Asaas agora (mesmo caminho da reconciliação).
+  const sync = useMutation({
+    mutationFn: () => post<{ changed: boolean }>(`/charges/${charge.id}/sync`),
+    onSuccess: (r) => {
+      toast.success(r.changed ? 'Atualizada com o Asaas.' : 'Já estava igual ao Asaas.');
+      return Promise.all([queryClient.invalidateQueries({ queryKey: ['charge', charge.id] }), queryClient.invalidateQueries({ queryKey: ['charges'] })]);
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!canCancel && !canRefund && !canSync) return null;
 
   return (
     <div className="flex flex-wrap gap-2">
+      {canSync && (
+        <Button variant="ghost" onClick={() => sync.mutate()} disabled={sync.isPending} title="Conferir no Asaas agora">
+          <RefreshCw aria-hidden className={sync.isPending ? 'animate-spin' : undefined} />
+          Atualizar do Asaas
+        </Button>
+      )}
       {canCancel && (
         <Button
           variant="outline"

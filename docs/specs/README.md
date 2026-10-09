@@ -29,12 +29,12 @@ IDs: `<PREFIXO>-NN` para a história e `<PREFIXO>-NN.M` para cada critério. Tar
 | 00 | [Fundação](00-fundacao/) | FND | Aprovado | Aprovado | Aprovado | M0 |
 | 01 | [Clientes](01-clientes/) | CLI | Implementado | Aprovado | Aprovado | M1 |
 | 02 | [Serviços](02-servicos/) | SRV | Implementado | Aprovado | Aprovado | M1 |
-| 03 | [Cobranças](03-cobrancas/) | COB | Aprovado | Aprovado | Aprovado | M2–M3 |
-| 04 | [Webhook e reconciliação Asaas](04-webhook-asaas/) | WHK | Aprovado | Aprovado | Aprovado | M2 |
-| 05 | [Contas a pagar](05-despesas/) | DSP | Aprovado | Aprovado | Aprovado | M4 |
-| 06 | [Dashboard e fluxo de caixa](06-dashboard-fluxo/) | FLX | Aprovado | Aprovado | Aprovado | M5 |
-| 07 | [Contratos](07-contratos/) | CTR | Aprovado | Aprovado | Aprovado | M6 |
-| 08 | [Régua de cobrança](08-regua-cobranca/) | REG | Aprovado | Aprovado | Aprovado | M7 |
+| 03 | [Cobranças](03-cobrancas/) | COB | Implementado | Aprovado | Aprovado | M2–M3 |
+| 04 | [Webhook e reconciliação Asaas](04-webhook-asaas/) | WHK | Implementado | Aprovado | Aprovado | M2 |
+| 05 | [Contas a pagar](05-despesas/) | DSP | Implementado | Aprovado | Aprovado | M4 |
+| 06 | [Dashboard e fluxo de caixa](06-dashboard-fluxo/) | FLX | Implementado | Aprovado | Aprovado | M5 |
+| 07 | [Contratos](07-contratos/) | CTR | Implementado (Fake; Clicksign pendente) | Aprovado | Aprovado | M6 |
+| 08 | [Régua de cobrança](08-regua-cobranca/) | REG | Implementado (WhatsApp na v1.1) | Aprovado | Aprovado | M7 |
 
 ## Roadmap
 

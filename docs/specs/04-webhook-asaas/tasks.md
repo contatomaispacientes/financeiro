@@ -31,5 +31,5 @@
 - [x] 8. Log de eventos (API + tela), reprocessar, card de saúde
   - _Requisitos: WHK-03.1–03.3_
 
-- [ ] 9. `ReconcileService` com cron 06:00, "Reconciliar agora", limite de concorrência, eventos RECONCILE; job mensal de retenção
+- [x] 9. `ReconcileService` com cron 06:00, "Reconciliar agora", limite de concorrência, eventos RECONCILE; job mensal de retenção
   - _Requisitos: WHK-04.1–04.5, WHK-NF3_

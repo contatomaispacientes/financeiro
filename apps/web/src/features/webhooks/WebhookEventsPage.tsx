@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Activity, RotateCcw } from 'lucide-react';
+import { Activity, RefreshCw, RotateCcw } from 'lucide-react';
 import type { Paginated, WebhookEventDetailDto, WebhookEventDto, WebhookEventState, WebhookHealthDto } from '@financeiro/shared';
 import { PageHeader } from '@/components/page-header';
 import { PaginationBar } from '@/components/pagination-bar';
@@ -48,6 +48,16 @@ export function useWebhookHealth() {
 /** WHK-03.3: saúde do recebimento de eventos. */
 export function WebhookHealthCard() {
   const health = useWebhookHealth();
+  const qc = useQueryClient();
+  // WHK-04.4: confere no Asaas as cobranças em aberto e as pagas/canceladas recentes.
+  const reconcile = useMutation({
+    mutationFn: () => post<{ checked: number; fixed: number; imported: number; errors: number }>('/reconcile'),
+    onSuccess: (s) => {
+      toast.success(`Reconciliação: ${s.checked} verificadas, ${s.fixed} corrigidas, ${s.imported} importadas${s.errors ? `, ${s.errors} com erro` : ''}.`);
+      return Promise.all(['webhook-events', 'webhook-health', 'charges', 'dashboard'].map((k) => qc.invalidateQueries({ queryKey: [k] })));
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
   if (!health.data) return null;
   const h = health.data;
   return (
@@ -55,6 +65,10 @@ export function WebhookHealthCard() {
       <span className="flex items-center gap-2 font-medium"><Activity aria-hidden className="size-4" />{h.alert ?? 'Recebimento de eventos em dia'}</span>
       <span className="text-muted-foreground">Último evento: {h.lastReceivedAt ? formatDateTime(h.lastReceivedAt) : 'nenhum'}</span>
       <span className="text-muted-foreground">Erros nas últimas 24 h: <span className="tabular">{h.errorsLast24h}</span></span>
+      <Button size="sm" variant="outline" className="ml-auto" disabled={reconcile.isPending} onClick={() => reconcile.mutate()}>
+        <RefreshCw aria-hidden className={reconcile.isPending ? 'animate-spin' : undefined} />
+        Reconciliar agora
+      </Button>
     </div>
   );
 }

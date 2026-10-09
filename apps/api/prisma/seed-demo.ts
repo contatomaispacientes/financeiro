@@ -1,6 +1,7 @@
 /**
  * Dados de demonstração para testar dashboard, fluxo, despesas e log sem chamar o Asaas.
- * Só para desenvolvimento: recusa rodar com NODE_ENV=production. Pode rodar de novo (não duplica).
+ * Para desenvolvimento e para demonstração na VPS: em produção só roda com o Asaas simulado
+ * (ASAAS_ENV=mock), nunca contra dados reais. Pode rodar de novo (não duplica).
  */
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
@@ -8,8 +9,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Prisma, PrismaClient } from '../src/generated/prisma/client.js';
 import { addDays, addMonthsClamped, clampDay, todayInSaoPaulo } from '@financeiro/shared';
 
-if (process.env['NODE_ENV'] === 'production') {
-  console.error('seed-demo não roda em produção.');
+if (process.env['NODE_ENV'] === 'production' && process.env['ASAAS_ENV'] !== 'mock') {
+  console.error('seed-demo só roda em produção com o Asaas simulado (ASAAS_ENV=mock).');
   process.exit(1);
 }
 

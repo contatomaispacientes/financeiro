@@ -105,8 +105,10 @@ async function main() {
       }
     }
     console.log('  ✓ Customers');
-  
-    // 6. Contract template (fake provider)
+  }
+
+  // 6. Modelo do provedor simulado: em dev e também em produção com CONTRACT_PROVIDER=fake (demonstração).
+  if (!production || process.env['CONTRACT_PROVIDER'] === 'fake') {
     const existing = await prisma.contractTemplate.findFirst({
       where: { provider: 'fake', name: 'Contrato Padrão (Teste)' },
     });

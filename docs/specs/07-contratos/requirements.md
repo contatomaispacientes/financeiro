@@ -87,7 +87,7 @@ Toda venda deve ser formalizada com contrato assinado eletronicamente, e a cobra
 
 - CTR-NF1 — Envio, cancelamento, geração de cobrança e reprocessamentos auditados.
 - CTR-NF2 — PDFs assinados guardados com acesso só por URL assinada de curta duração.
-- CTR-NF3 — O `FakeProvider` e suas rotas `/dev/*` NÃO DEVEM existir em produção.
+- CTR-NF3 — O `FakeProvider` e suas rotas `/dev/*` só DEVEM existir com `CONTRACT_PROVIDER=fake` (escolha explícita, como o Asaas simulado do ADR-016); em produção real o provedor é o Clicksign.
 
 ## Perguntas em aberto
 
@@ -104,3 +104,4 @@ Toda venda deve ser formalizada com contrato assinado eletronicamente, e a cobra
 | 07/10/2026 | Versão inicial |
 | 07/10/2026 | Provedor definido: Clicksign. CTR-02.8 (método de autenticação), CTR-03 e CTR-04.5 ajustados ao fluxo de envelopes e HMAC, CTR-08 reescrito |
 | 07/10/2026 | Decisões do dono: empresa assina todos os contratos, sem testemunhas (CTR-02.3), endereço de cobrança obrigatório (CTR-02.9); CTR-05.2 ajusta também o 'N dias após a assinatura' quando a geração é refeita tarde; CTR-05.4 funciona após esgotar tentativas |
+| 08/10/2026 | CTR-NF3: as rotas `/dev/fake-sign` dependem de `CONTRACT_PROVIDER=fake` e não de `NODE_ENV`, para dar para demonstrar o fluxo na VPS sem Clicksign (mesma lógica do ADR-016) |

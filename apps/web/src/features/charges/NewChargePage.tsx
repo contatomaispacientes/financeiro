@@ -1,10 +1,11 @@
 import { useMemo, useState, type ComponentProps, type ReactNode } from 'react';
-import { useSearchParams } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { toast } from 'sonner';
-import { ChevronDown, CodeXml, LoaderCircle, Plus, TriangleAlert, X } from 'lucide-react';
+import { ChevronDown, CodeXml, FileSignature, LoaderCircle, Plus, TriangleAlert, X } from 'lucide-react';
 import {
   addDays,
+  can,
   calculatePlan,
   ChargePlanSchema,
   todayInSaoPaulo,
@@ -33,6 +34,8 @@ import { errorMessage } from '@/lib/form-errors';
 import { formatBRL, formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { useSettings } from '@/features/settings/api';
+import { useSession } from '@/lib/auth';
+import type { NewContractState } from '@/features/contracts/NewContractPage';
 import {
   useActiveServices,
   useChargeAction,
@@ -119,6 +122,7 @@ function describeIssue(issue: { path: PropertyKey[]; code: string; message: stri
 export function NewChargePage() {
   const [params, setParams] = useSearchParams();
   const preselectId = params.get('cliente');
+  const contractMode = params.get('contrato') === '1';
   const settings = useSettings();
   const environment = useEnvironment();
   const preselected = usePreselectedCustomer(preselectId);
@@ -139,7 +143,11 @@ export function NewChargePage() {
   }
 
   const header = (
-    <PageHeader title="Nova cobrança" description="Monte a cobrança, confira o resumo e gere no Asaas. O cliente recebe o link da fatura." />
+    contractMode ? (
+      <PageHeader title="Novo contrato" description="Passo 1 de 2: cliente, serviços e condições de pagamento. A cobrança só é gerada quando todos assinarem." />
+    ) : (
+      <PageHeader title="Nova cobrança" description="Monte a cobrança, confira o resumo e gere no Asaas. O cliente recebe o link da fatura." />
+    )
   );
 
   if (settings.isPending || environment.isPending || (preselectId && preselected.isPending)) {
@@ -176,6 +184,7 @@ export function NewChargePage() {
         settings={settings.data}
         minChargeCents={environment.data.minChargeCents}
         sandbox={environment.data.asaasEnv !== 'production'}
+        contractMode={contractMode}
         initialCustomer={initialCustomer}
         customerNotice={customerNotice}
         onCreated={setCreated}
@@ -188,6 +197,7 @@ function ChargeForm({
   settings,
   minChargeCents,
   sandbox,
+  contractMode,
   initialCustomer,
   customerNotice,
   onCreated,
@@ -195,6 +205,7 @@ function ChargeForm({
   settings: SettingsDto;
   minChargeCents: number;
   sandbox: boolean;
+  contractMode: boolean;
   initialCustomer: PickedCustomer | null;
   customerNotice: string | null;
   onCreated: (charge: ChargeDetailDto) => void;
@@ -204,6 +215,15 @@ function ChargeForm({
   const [draft, setDraft] = useState<{ chargeId: string; message: string } | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const create = useCreateCharge();
+  const navigate = useNavigate();
+  const { user } = useSession();
+  const canContract = can(user?.role, 'MANAGE_CONTRACTS');
+
+  /** CTR-02.7: o contrato nasce com o cliente e o plano montados aqui (mesmas validações). */
+  function toContract() {
+    if (!request || !customer) return;
+    navigate('/contratos/novo', { state: { customer, plan: request.plan } satisfies NewContractState });
+  }
   const action = useChargeAction();
   const services = useActiveServices();
 
@@ -650,10 +670,22 @@ function ChargeForm({
             </div>
           ) : (
             <>
-              <Button type="button" size="lg" className="mt-4 w-full" disabled={!request || create.isPending} onClick={generate}>
-                {create.isPending && <LoaderCircle aria-hidden className="animate-spin" />}
-                {create.isPending ? 'Gerando no Asaas…' : values.type === 'RECURRING' ? 'Criar recorrência no Asaas' : 'Gerar cobrança no Asaas'}
-              </Button>
+              {contractMode ? (
+                <Button type="button" size="lg" className="mt-4 w-full" disabled={!request} onClick={toContract}>
+                  Continuar para o contrato
+                </Button>
+              ) : (
+                <Button type="button" size="lg" className="mt-4 w-full" disabled={!request || create.isPending} onClick={generate}>
+                  {create.isPending && <LoaderCircle aria-hidden className="animate-spin" />}
+                  {create.isPending ? 'Gerando no Asaas…' : values.type === 'RECURRING' ? 'Criar recorrência no Asaas' : 'Gerar cobrança no Asaas'}
+                </Button>
+              )}
+              {!contractMode && canContract && (
+                <Button type="button" variant="outline" className="mt-2 w-full" disabled={!request || create.isPending} onClick={toContract}>
+                  <FileSignature aria-hidden />
+                  Gerar contrato em vez de cobrar já
+                </Button>
+              )}
               {submitError && (
                 <p role="alert" className="mt-3 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
                   {submitError}

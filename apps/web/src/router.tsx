@@ -2,7 +2,6 @@ import type { RouteObject } from 'react-router';
 import { RequireAuth, RequireRole } from '@/components/guards';
 import { AppLayout } from '@/layouts/AppLayout';
 import { NotFoundPage } from '@/pages/NotFoundPage';
-import { PlaceholderPage } from '@/pages/PlaceholderPage';
 import { LoginPage } from '@/features/auth/LoginPage';
 import { UsersPage } from '@/features/users/UsersPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
@@ -13,6 +12,10 @@ import { ServicesPage } from '@/features/services/ServicesPage';
 import { NewChargePage } from '@/features/charges/NewChargePage';
 import { ChargeDetailPage } from '@/features/charges/ChargeDetailPage';
 import { ChargesPage } from '@/features/charges/ChargesPage';
+import { ContractDetailPage } from '@/features/contracts/ContractDetailPage';
+import { ContractsPage } from '@/features/contracts/ContractsPage';
+import { NewContractPage } from '@/features/contracts/NewContractPage';
+import { TemplatesPage } from '@/features/contracts/TemplatesPage';
 import { SubscriptionDetailPage, SubscriptionsPage } from '@/features/charges/SubscriptionsPage';
 import { ExpensesPage } from '@/features/expenses/ExpensesPage';
 import { DashboardPage } from '@/features/reports/DashboardPage';
@@ -41,7 +44,10 @@ export const routes: RouteObject[] = [
           { path: 'cobrancas', element: <ChargesPage /> },
           { path: 'assinaturas', element: <SubscriptionsPage /> },
           { path: 'assinaturas/:id', element: <SubscriptionDetailPage /> },
-          { path: 'contratos', element: <PlaceholderPage title="Contratos" spec="07" /> },
+          { path: 'contratos', element: <ContractsPage /> },
+          { path: 'contratos/novo', element: <NewContractPage /> },
+          { path: 'contratos/modelos', element: <TemplatesPage /> },
+          { path: 'contratos/:id', element: <ContractDetailPage /> },
           { path: 'clientes', element: <CustomersPage /> },
           { path: 'clientes/:id', element: <CustomerDetailPage /> },
           { path: 'servicos', element: <ServicesPage /> },

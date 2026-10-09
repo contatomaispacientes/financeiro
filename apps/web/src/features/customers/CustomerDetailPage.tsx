@@ -137,7 +137,7 @@ export function CustomerDetailPage() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link to={`/contratos/novo?cliente=${c.id}`}>
+                  <Link to={`/cobrancas/nova?contrato=1&cliente=${c.id}`}>
                     <FilePlus2 aria-hidden />
                     Novo contrato
                   </Link>
@@ -262,7 +262,7 @@ export function CustomerDetailPage() {
               <ul className="divide-y rounded-lg border bg-card">
                 {c.subscriptions.map((s) => (
                   <li key={s.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                    <span className="font-medium">{s.description}</span>
+                    <Link to={`/assinaturas/${s.id}`} className="font-medium hover:underline">{s.description}</Link>
                     <span className="tabular text-muted-foreground">
                       {formatBRL(s.valueCents)} · {cycleLabels[s.cycle]} · próximo {formatDate(s.nextDueDate)}
                     </span>
@@ -279,7 +279,7 @@ export function CustomerDetailPage() {
               <ul className="divide-y rounded-lg border bg-card">
                 {c.contracts.map((ct) => (
                   <li key={ct.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 text-sm">
-                    <span className="font-medium">{ct.title}</span>
+                    <Link to={`/contratos/${ct.id}`} className="font-medium hover:underline">{ct.title}</Link>
                     <span className="flex items-center gap-3">
                       <span className="tabular text-muted-foreground">{formatBRL(ct.totalCents)}</span>
                       <StatusBadge kind="contract" status={ct.status} />

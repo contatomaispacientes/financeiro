@@ -109,22 +109,25 @@ async function main() {
     const existing = await prisma.contractTemplate.findFirst({
       where: { provider: 'fake', name: 'Contrato Padrão (Teste)' },
     });
+    // Variáveis do catálogo (docs/integrations/contratos-provider.md); atualiza o mapeamento antigo.
+    const variableMap = {
+      nome_cliente: 'cliente.nome',
+      documento_cliente: 'cliente.documento',
+      endereco_cliente: 'cliente.endereco',
+      servicos: 'servicos.lista',
+      valor_total: 'cobranca.valor_total',
+      forma_pagamento: 'cobranca.forma',
+      condicao: 'cobranca.condicao',
+      vencimento: 'cobranca.vencimento',
+      empresa: 'empresa.nome',
+      data: 'contrato.data',
+    };
     if (!existing) {
       await prisma.contractTemplate.create({
-        data: {
-          name: 'Contrato Padrão (Teste)',
-          provider: 'fake',
-          providerTemplateId: 'fake-template-001',
-          variableMap: {
-            nome_cliente: 'customerName',
-            documento_cliente: 'customerDocument',
-            valor_total: 'totalFormatted',
-            descricao_servicos: 'servicesDescription',
-            data_inicio: 'startDate',
-            cidade: 'companyCity',
-          },
-        },
+        data: { name: 'Contrato Padrão (Teste)', provider: 'fake', providerTemplateId: 'fake-template-001', variableMap },
       });
+    } else {
+      await prisma.contractTemplate.update({ where: { id: existing.id }, data: { variableMap } });
     }
     console.log('  ✓ Contract template (fake)');
   }

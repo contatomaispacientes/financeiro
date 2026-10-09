@@ -14,6 +14,7 @@ import type { Prisma, WebhookEvent } from '../../generated/prisma/client.js';
 import { DomainException } from '../../common/filters/domain-exception.filter';
 import { requeue } from '../../queues/enqueue';
 import { ASAAS_EVENT_JOB, ASAAS_EVENT_JOB_OPTIONS, ASAAS_EVENTS_QUEUE, webhookEventJobId } from '../../queues/asaas-events';
+import { CONTRACT_EVENT_JOB, CONTRACT_EVENT_JOB_OPTIONS, CONTRACT_EVENTS_QUEUE } from '../../queues/contracts';
 import type { JwtPayload } from '../../common/decorators/current-user.decorator';
 import { AuditService } from '../audit/audit.service';
 
@@ -46,6 +47,7 @@ export class WebhookEventsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     @InjectQueue(ASAAS_EVENTS_QUEUE) private readonly queue: Queue,
+    @InjectQueue(CONTRACT_EVENTS_QUEUE) private readonly contractQueue: Queue,
   ) {}
 
   async list(q: WebhookEventQuery): Promise<Paginated<WebhookEventDto>> {
@@ -85,7 +87,11 @@ export class WebhookEventsService {
       throw new DomainException('EVENT_ALREADY_PROCESSED', 'Este evento já foi processado com sucesso', HttpStatus.CONFLICT);
     }
     await this.prisma.webhookEvent.update({ where: { id }, data: { attempts: 0, error: null, processedAt: null, result: null } });
-    await requeue(this.queue, ASAAS_EVENT_JOB, { webhookEventId: id }, webhookEventJobId(id), ASAAS_EVENT_JOB_OPTIONS);
+    if (row.source === 'CONTRACT') {
+      await requeue(this.contractQueue, CONTRACT_EVENT_JOB, { webhookEventId: id }, webhookEventJobId(id), CONTRACT_EVENT_JOB_OPTIONS);
+    } else {
+      await requeue(this.queue, ASAAS_EVENT_JOB, { webhookEventId: id }, webhookEventJobId(id), ASAAS_EVENT_JOB_OPTIONS);
+    }
     await this.audit.record({ userId: actor.sub, action: 'webhook_event.reprocess', entity: 'webhook_event', entityId: id, data: { event: row.event } });
     return this.get(id);
   }

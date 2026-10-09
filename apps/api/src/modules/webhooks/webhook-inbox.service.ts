@@ -11,9 +11,10 @@ import {
   ASAAS_EVENTS_QUEUE,
   webhookEventJobId,
 } from '../../queues/asaas-events';
+import { CONTRACT_EVENT_JOB, CONTRACT_EVENT_JOB_OPTIONS, CONTRACT_EVENTS_QUEUE } from '../../queues/contracts';
 
-/** Origens que chegam por webhook; contratos (spec 07) entram aqui com a própria fila. */
-export type InboxSource = 'ASAAS';
+/** Origens que chegam por webhook, cada uma com a própria fila. */
+export type InboxSource = 'ASAAS' | 'CONTRACT';
 
 export interface InboxEvent {
   externalEventId: string;
@@ -26,13 +27,17 @@ export interface InboxEvent {
 @Injectable()
 export class WebhookInbox {
   private readonly logger = new Logger(WebhookInbox.name);
-  private readonly queues: Record<InboxSource, Queue>;
+  private readonly queues: Record<InboxSource, { queue: Queue; job: string; opts: typeof ASAAS_EVENT_JOB_OPTIONS }>;
 
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue(ASAAS_EVENTS_QUEUE) asaasEvents: Queue,
+    @InjectQueue(CONTRACT_EVENTS_QUEUE) contractEvents: Queue,
   ) {
-    this.queues = { ASAAS: asaasEvents };
+    this.queues = {
+      ASAAS: { queue: asaasEvents, job: ASAAS_EVENT_JOB, opts: ASAAS_EVENT_JOB_OPTIONS },
+      CONTRACT: { queue: contractEvents, job: CONTRACT_EVENT_JOB, opts: CONTRACT_EVENT_JOB_OPTIONS },
+    };
   }
 
   async store(source: InboxSource, input: InboxEvent): Promise<{ id: string; inserted: boolean }> {
@@ -46,7 +51,8 @@ export class WebhookInbox {
 
     // Sem await: com o Redis fora do ar o add ficaria preso nas reconexões e o webhook não responderia
     // a tempo. O evento já está salvo; o sweeper (a cada 10 min) enfileira o que ficar para trás.
-    enqueueUnique(this.queues[source], ASAAS_EVENT_JOB, { webhookEventId: id }, webhookEventJobId(id), ASAAS_EVENT_JOB_OPTIONS)
+    const target = this.queues[source];
+    enqueueUnique(target.queue, target.job, { webhookEventId: id }, webhookEventJobId(id), target.opts)
       .catch((error: unknown) =>
         this.logger.warn(`Evento ${id} salvo mas não enfileirado: ${error instanceof Error ? error.message : error}`),
       );

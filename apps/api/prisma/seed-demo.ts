@@ -5,7 +5,7 @@
 import 'dotenv/config';
 import { randomUUID } from 'node:crypto';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../src/generated/prisma/client.js';
+import { Prisma, PrismaClient } from '../src/generated/prisma/client.js';
 import { addDays, addMonthsClamped, clampDay, todayInSaoPaulo } from '@financeiro/shared';
 
 if (process.env['NODE_ENV'] === 'production') {
@@ -17,8 +17,26 @@ const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: proc
 const d = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
 async function main() {
+  // Dados da empresa e signatário padrão (só onde estiver vazio), para os contratos de exemplo saírem completos.
+  const s = await prisma.settings.findUniqueOrThrow({ where: { id: 1 } });
+  await prisma.settings.update({
+    where: { id: 1 },
+    data: {
+      companyName: s.companyName && s.companyName !== 'Minha Empresa' ? s.companyName : 'Minha Empresa Ltda',
+      companyDocument: s.companyDocument ?? '11444777000161',
+      companyCity: s.companyCity ?? 'São Paulo',
+      companySignerName: s.companySignerName ?? 'Responsável da Empresa',
+      companySignerEmail: s.companySignerEmail ?? 'responsavel@minhaempresa.com.br',
+    },
+  });
+  // Contrato exige endereço completo (CTR-02.9): os clientes sem endereço ganham um de exemplo.
+  await prisma.customer.updateMany({
+    where: { address: { equals: Prisma.DbNull } },
+    data: { address: { postalCode: '01310100', street: 'Av. Paulista', number: '1000', district: 'Bela Vista', city: 'São Paulo', state: 'SP' } },
+  });
+
   if (await prisma.charge.count({ where: { externalReference: { startsWith: 'demo_' } } })) {
-    console.log('Dados de demonstração já existem.');
+    console.log('Dados de demonstração já existem (empresa e endereços conferidos).');
     return;
   }
   const today = todayInSaoPaulo();

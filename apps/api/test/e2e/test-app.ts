@@ -32,7 +32,7 @@ export async function createTestApp(env: Record<string, string> = {}): Promise<I
   // Importado depois do env: o AppModule lê NODE_ENV ao ser avaliado.
   const { AppModule } = await import('../../src/app.module.js');
   const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-  const app = moduleRef.createNestApplication({ bufferLogs: true });
+  const app = moduleRef.createNestApplication({ bufferLogs: true, rawBody: true });
   configureApp(app);
   await app.init();
   return app;

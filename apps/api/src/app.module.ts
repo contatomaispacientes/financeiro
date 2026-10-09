@@ -19,6 +19,7 @@ import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { PaymentEventsModule } from './modules/payment-events/payment-events.module';
 import { AsaasMockModule } from './modules/asaas-mock/asaas-mock.module';
 import { StorageModule } from './integrations/storage/storage.module';
+import { ContractsModule } from './modules/contracts/contracts.module';
 
 const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 
@@ -76,6 +77,7 @@ const SAFE_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
     WebhooksModule,
     PaymentEventsModule,
     AsaasMockModule,
+    ContractsModule,
     HealthModule,
   ],
 })

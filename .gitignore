@@ -36,7 +36,8 @@ coverage/
 .turbo/
 
 # Storage (local uploads in dev)
-storage/
+/storage/
+apps/api/storage/
 
 # Worktrees dos agentes
 .claude/worktrees/
